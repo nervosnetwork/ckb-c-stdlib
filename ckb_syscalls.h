@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "ckb_consts.h"
 
@@ -257,8 +258,8 @@ int ckb_debug(const char* s) {
    use this instead of ckb_load_witness if type contract needs args to verify
    input/output.
  */
-int load_actual_type_witness(uint8_t* buf, uint64_t* len, size_t index,
-                             size_t* type_source) {
+int ckb_load_actual_type_witness(uint8_t* buf, uint64_t* len, size_t index,
+                                 size_t* type_source) {
   *type_source = CKB_SOURCE_GROUP_INPUT;
   uint64_t tmp_len = 0;
   if (ckb_load_cell_by_field(NULL, &tmp_len, 0, 0, CKB_SOURCE_GROUP_INPUT,
@@ -268,6 +269,73 @@ int load_actual_type_witness(uint8_t* buf, uint64_t* len, size_t index,
   }
 
   return ckb_checked_load_witness(buf, len, 0, index, *type_source);
+}
+
+/* calculate inputs length */
+int ckb_calculate_inputs_len() {
+  uint64_t len = 0;
+  /* lower bound, at least tx has one input */
+  int lo = 0;
+  /* higher bound */
+  int hi = 4;
+  int ret;
+  /* try to load input until failing to increase lo and hi */
+  while (1) {
+    ret = ckb_load_input_by_field(NULL, &len, 0, hi, CKB_SOURCE_INPUT,
+                                  CKB_INPUT_FIELD_SINCE);
+    if (ret == CKB_SUCCESS) {
+      lo = hi;
+      hi *= 2;
+    } else {
+      break;
+    }
+  }
+
+  /* now we get our lower bound and higher bound,
+   count number of inputs by binary search */
+  int i;
+  while (lo + 1 != hi) {
+    i = (lo + hi) / 2;
+    ret = ckb_load_input_by_field(NULL, &len, 0, i, CKB_SOURCE_INPUT,
+                                  CKB_INPUT_FIELD_SINCE);
+    if (ret == CKB_SUCCESS) {
+      lo = i;
+    } else {
+      hi = i;
+    }
+  }
+  /* now lo is last input index and hi is length of inputs */
+  return hi;
+}
+
+/*
+ * Look for dep cell with specific data hash, data_hash should a buffer with
+ * 32 bytes.
+ */
+int ckb_look_for_dep_with_hash(const uint8_t* data_hash, size_t* index) {
+  size_t current = 0;
+  while (current < SIZE_MAX) {
+    uint64_t len = 32;
+    uint8_t hash[32];
+
+    int ret = ckb_load_cell_by_field(
+        hash, &len, 0, current, CKB_SOURCE_CELL_DEP, CKB_CELL_FIELD_DATA_HASH);
+    switch (ret) {
+      case CKB_ITEM_MISSING:
+        break;
+      case CKB_SUCCESS:
+        if (memcmp(data_hash, hash, 32) == 0) {
+          /* Found a match */
+          *index = current;
+          return CKB_SUCCESS;
+        }
+        break;
+      default:
+        return CKB_INDEX_OUT_OF_BOUND;
+    }
+    current++;
+  }
+  return CKB_INDEX_OUT_OF_BOUND;
 }
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALLS_H_ */

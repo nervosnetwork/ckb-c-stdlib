@@ -295,4 +295,24 @@ void *memmove(void *dest, const void *src, size_t n) {
   return dest;
 }
 
+char *strcpy(char *restrict d, const char *restrict s) {
+  char *dest = d;
+  for (; (*d = *s); s++, d++)
+    ;
+  return dest;
+}
+
+size_t strlen(const char *s) {
+  const char *a = s;
+  for (; *s; s++)
+    ;
+  return s - a;
+}
+
+int strcmp(const char *l, const char *r) {
+  for (; *l == *r && *l; l++, r++)
+    ;
+  return *(unsigned char *)l - *(unsigned char *)r;
+}
+
 #endif /* CKB_C_STDLIB_STRING_H_ */

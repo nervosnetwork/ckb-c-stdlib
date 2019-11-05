@@ -1,6 +1,7 @@
 #ifndef CKB_C_STDLIB_ENTRY_H_
 #define CKB_C_STDLIB_ENTRY_H_
 
+#ifndef __SHARED_LIBRARY__
 __attribute__((visibility("default"))) __attribute__((naked)) void _start() {
   asm volatile(
       ".option push\n"
@@ -19,5 +20,6 @@ __attribute__((visibility("default"))) __attribute__((naked)) void _start() {
       "li a7, 93\n"
       "ecall");
 }
+#endif /* __SHARED_LIBRARY__ */
 
 #endif /* CKB_C_STDLIB_ENTRY_H_ */
