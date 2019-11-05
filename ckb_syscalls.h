@@ -48,11 +48,29 @@ int ckb_load_tx_hash(void* addr, uint64_t* len, size_t offset) {
   return ret;
 }
 
+int ckb_checked_load_tx_hash(void* addr, uint64_t* len, size_t offset) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_tx_hash(addr, len, offset);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_load_script_hash(void* addr, uint64_t* len, size_t offset) {
   volatile uint64_t inner_len = *len;
   int ret =
       syscall(SYS_ckb_load_script_hash, addr, &inner_len, offset, 0, 0, 0);
   *len = inner_len;
+  return ret;
+}
+
+int ckb_checked_load_script_hash(void* addr, uint64_t* len, size_t offset) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_script_hash(addr, len, offset);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
   return ret;
 }
 
@@ -65,12 +83,32 @@ int ckb_load_cell(void* addr, uint64_t* len, size_t offset, size_t index,
   return ret;
 }
 
+int ckb_checked_load_cell(void* addr, uint64_t* len, size_t offset,
+                          size_t index, size_t source) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_cell(addr, len, offset, index, source);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_load_input(void* addr, uint64_t* len, size_t offset, size_t index,
                    size_t source) {
   volatile uint64_t inner_len = *len;
   int ret =
       syscall(SYS_ckb_load_input, addr, &inner_len, offset, index, source, 0);
   *len = inner_len;
+  return ret;
+}
+
+int ckb_checked_load_input(void* addr, uint64_t* len, size_t offset,
+                           size_t index, size_t source) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_input(addr, len, offset, index, source);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
   return ret;
 }
 
@@ -83,6 +121,16 @@ int ckb_load_header(void* addr, uint64_t* len, size_t offset, size_t index,
   return ret;
 }
 
+int ckb_checked_load_header(void* addr, uint64_t* len, size_t offset,
+                            size_t index, size_t source) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_header(addr, len, offset, index, source);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_load_witness(void* addr, uint64_t* len, size_t offset, size_t index,
                      size_t source) {
   volatile uint64_t inner_len = *len;
@@ -92,10 +140,29 @@ int ckb_load_witness(void* addr, uint64_t* len, size_t offset, size_t index,
   return ret;
 }
 
+int ckb_checked_load_witness(void* addr, uint64_t* len, size_t offset,
+                             size_t index, size_t source) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_witness(addr, len, offset, index, source);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_load_script(void* addr, uint64_t* len, size_t offset) {
   volatile uint64_t inner_len = *len;
   int ret = syscall(SYS_ckb_load_script, addr, &inner_len, offset, 0, 0, 0);
   *len = inner_len;
+  return ret;
+}
+
+int ckb_checked_load_script(void* addr, uint64_t* len, size_t offset) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_script(addr, len, offset);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
   return ret;
 }
 
@@ -108,6 +175,16 @@ int ckb_load_cell_by_field(void* addr, uint64_t* len, size_t offset,
   return ret;
 }
 
+int ckb_checked_load_cell_by_field(void* addr, uint64_t* len, size_t offset,
+                                   size_t index, size_t source, size_t field) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_cell_by_field(addr, len, offset, index, source, field);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_load_header_by_field(void* addr, uint64_t* len, size_t offset,
                              size_t index, size_t source, size_t field) {
   volatile uint64_t inner_len = *len;
@@ -117,12 +194,33 @@ int ckb_load_header_by_field(void* addr, uint64_t* len, size_t offset,
   return ret;
 }
 
+int ckb_checked_load_header_by_field(void* addr, uint64_t* len, size_t offset,
+                                     size_t index, size_t source,
+                                     size_t field) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_header_by_field(addr, len, offset, index, source, field);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_load_input_by_field(void* addr, uint64_t* len, size_t offset,
                             size_t index, size_t source, size_t field) {
   volatile uint64_t inner_len = *len;
   int ret = syscall(SYS_ckb_load_input_by_field, addr, &inner_len, offset,
                     index, source, field);
   *len = inner_len;
+  return ret;
+}
+
+int ckb_checked_load_input_by_field(void* addr, uint64_t* len, size_t offset,
+                                    size_t index, size_t source, size_t field) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_input_by_field(addr, len, offset, index, source, field);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
   return ret;
 }
 
@@ -141,15 +239,26 @@ int ckb_load_cell_data(void* addr, uint64_t* len, size_t offset, size_t index,
   return ret;
 }
 
+int ckb_checked_load_cell_data(void* addr, uint64_t* len, size_t offset,
+                               size_t index, size_t source) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_cell_data(addr, len, offset, index, source);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_debug(const char* s) {
   return syscall(SYS_ckb_debug, s, 0, 0, 0, 0, 0);
 }
 
 /* load the actual witness for the current type verify group.
-   use this instead of ckb_load_witness if type contract needs args to verify input/output.
+   use this instead of ckb_load_witness if type contract needs args to verify
+   input/output.
  */
-int load_actual_type_witness(uint8_t *buf, uint64_t *len, size_t index,
-                             size_t *type_source) {
+int load_actual_type_witness(uint8_t* buf, uint64_t* len, size_t index,
+                             size_t* type_source) {
   *type_source = CKB_SOURCE_GROUP_INPUT;
   uint64_t tmp_len = 0;
   if (ckb_load_cell_by_field(NULL, &tmp_len, 0, 0, CKB_SOURCE_GROUP_INPUT,
@@ -158,7 +267,7 @@ int load_actual_type_witness(uint8_t *buf, uint64_t *len, size_t index,
     *type_source = CKB_SOURCE_GROUP_OUTPUT;
   }
 
-  return ckb_load_witness(buf, len, 0, index, *type_source);
+  return ckb_checked_load_witness(buf, len, 0, index, *type_source);
 }
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALLS_H_ */
