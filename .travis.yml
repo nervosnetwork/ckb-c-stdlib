@@ -1,0 +1,17 @@
+language: c
+dist: bionic
+sudo: true
+
+git:
+  depth: 2
+
+addons:
+  apt:
+    packages:
+      - clang-format
+
+matrix:
+  include:
+    - name: Format
+      script:
+        - make fmt
