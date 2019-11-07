@@ -88,6 +88,7 @@ typedef struct {
   Elf64_Sym *dynsyms;
   const char *dynstr;
   size_t dynsym_size;
+  uint8_t *base_addr;
 } CkbDlfcnContext;
 
 int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
@@ -100,6 +101,7 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
   memset(context, 0, sizeof(CkbDlfcnContext));
   aligned_addr += RISCV_PGSIZE;
   aligned_size -= RISCV_PGSIZE;
+  context->base_addr = aligned_addr;
 
   size_t index = SIZE_MAX;
   int ret = ckb_look_for_dep_with_hash(dep_cell_data_hash, &index);
@@ -131,7 +133,7 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
   if (ret != CKB_SUCCESS) {
     return ret;
   }
-  if (len != sizeof(Elf64_Phdr) * header.e_phnum) {
+  if (len < sizeof(Elf64_Phdr) * header.e_phnum) {
     return ERROR_INVALID_ELF;
   }
   uint64_t max_consumed_size = 0;
@@ -162,7 +164,7 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
         if (ret != CKB_SUCCESS) {
           return ret;
         }
-        if (filesz != ph->p_filesz) {
+        if (filesz < ph->p_filesz) {
           return ERROR_INVALID_ELF;
         }
         max_consumed_size = MAX(max_consumed_size, consumed_end);
@@ -180,7 +182,25 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
   if (ret != CKB_SUCCESS) {
     return ret;
   }
-  if (len != sizeof(Elf64_Shdr) * header.e_shnum) {
+  if (len < sizeof(Elf64_Shdr) * header.e_shnum) {
+    return ERROR_INVALID_ELF;
+  }
+  /*
+   * First load shstrtab tab, this is temporary code only needed in ELF loading
+   * phase here.
+   */
+  Elf64_Shdr *shshrtab = &section_headers[header.e_shstrndx];
+  char shrtab[4096];
+  if (shshrtab->sh_size > 4096) {
+    return ERROR_INVALID_ELF;
+  }
+  uint64_t shrtab_len = shshrtab->sh_size;
+  ret = ckb_load_cell_data((void *)shrtab, &shrtab_len, shshrtab->sh_offset,
+                           index, CKB_SOURCE_CELL_DEP);
+  if (ret != CKB_SUCCESS) {
+    return ret;
+  }
+  if (shrtab_len < shshrtab->sh_size) {
     return ERROR_INVALID_ELF;
   }
   for (int i = 0; i < header.e_shnum; i++) {
@@ -200,7 +220,7 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
         if (ret != CKB_SUCCESS) {
           return ret;
         }
-        if (len != load_size * sizeof(Elf64_Rela)) {
+        if (len < load_size * sizeof(Elf64_Rela)) {
           return ERROR_INVALID_ELF;
         }
         relocation_size -= load_size;
@@ -221,15 +241,12 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
       if (sh->sh_entsize != sizeof(Elf64_Sym)) {
         return ERROR_INVALID_ELF;
       }
-      context->dynsyms = (Elf64_Sym *)aligned_addr + sh->sh_offset;
+      context->dynsyms = (Elf64_Sym *)(aligned_addr + sh->sh_offset);
       context->dynsym_size = sh->sh_size / sh->sh_entsize;
     } else if (sh->sh_type == SHT_STRTAB) {
-      Elf64_Shdr *shshrtab = &section_headers[header.e_shstrndx];
-      const char *shstrtab_start =
-          (const char *)aligned_addr + shshrtab->sh_offset;
-      const char *current_str = shstrtab_start + sh->sh_name;
+      const char *current_str = shrtab + sh->sh_name;
       if (strcmp(".dynstr", current_str) == 0) {
-        context->dynstr = (const char *)aligned_addr + sh->sh_offset;
+        context->dynstr = (const char *)(aligned_addr + sh->sh_offset);
       }
     }
   }
@@ -248,7 +265,7 @@ void *ckb_dlsym(void *handle, const char *symbol) {
     Elf64_Sym *sym = &context->dynsyms[i];
     const char *str = context->dynstr + sym->st_name;
     if (strcmp(str, symbol) == 0) {
-      return (void *)sym->st_value;
+      return (void *)(context->base_addr + sym->st_value);
     }
   }
 
