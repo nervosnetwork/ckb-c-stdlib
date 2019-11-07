@@ -60,4 +60,37 @@ int ckb_epoch_number_with_fraction_cmp(uint64_t a, uint64_t b) {
   }
 }
 
+#define CKB_SINCE_VALUE_BITS 56
+#define CKB_SINCE_VALUE_MASK 0x00ffffffffffffff
+#define CKB_SINCE_EPOCH_FRACTION_FLAG 0b0010000
+
+/*
+ * Compare general since value, comparable is set to 1 if the
+ * 2 since values are the same type, otherwise comparable is set to 0.
+ * Return value is the same as ckb_epoch_number_with_fraction_cmp, notice
+ * return value here only makes sense when comparable is set to 1.
+ */
+int ckb_since_cmp(uint64_t a, uint64_t b, int *comparable) {
+  uint8_t a_flags = a >> CKB_SINCE_VALUE_BITS;
+  uint8_t b_flags = b >> CKB_SINCE_VALUE_BITS;
+  if (a_flags != b_flags) {
+    *comparable = 0;
+    return 10;
+  }
+  *comparable = 1;
+  if (a_flags == CKB_SINCE_EPOCH_FRACTION_FLAG) {
+    return ckb_epoch_number_with_fraction_cmp(a, b);
+  } else {
+    uint64_t a_value = a & CKB_SINCE_VALUE_MASK;
+    uint64_t b_value = b & CKB_SINCE_VALUE_MASK;
+    if (a_value < b_value) {
+      return -1;
+    } else if (a_value > b_value) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+}
+
 #endif /* CKB_C_STDLIB_CKB_UTILS_H_ */
