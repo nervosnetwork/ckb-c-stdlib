@@ -2,6 +2,7 @@
 #define CKB_C_STDLIB_CKB_CONSTS_H_
 
 #define SYS_exit 93
+#define SYS_ckb_load_transaction 2051
 #define SYS_ckb_load_script 2052
 #define SYS_ckb_load_tx_hash 2061
 #define SYS_ckb_load_script_hash 2062

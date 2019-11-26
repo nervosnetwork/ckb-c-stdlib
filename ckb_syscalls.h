@@ -167,6 +167,23 @@ int ckb_checked_load_script(void* addr, uint64_t* len, size_t offset) {
   return ret;
 }
 
+int ckb_load_transaction(void* addr, uint64_t* len, size_t offset) {
+  volatile uint64_t inner_len = *len;
+  int ret =
+      syscall(SYS_ckb_load_transaction, addr, &inner_len, offset, 0, 0, 0);
+  *len = inner_len;
+  return ret;
+}
+
+int ckb_checked_load_transaction(void* addr, uint64_t* len, size_t offset) {
+  uint64_t old_len = *len;
+  int ret = ckb_load_transaction(addr, len, offset);
+  if (ret == CKB_SUCCESS && (*len) > old_len) {
+    ret = CKB_LENGTH_NOT_ENOUGH;
+  }
+  return ret;
+}
+
 int ckb_load_cell_by_field(void* addr, uint64_t* len, size_t offset,
                            size_t index, size_t source, size_t field) {
   volatile uint64_t inner_len = *len;
