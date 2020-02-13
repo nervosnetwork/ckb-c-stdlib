@@ -62,7 +62,7 @@ int ckb_epoch_number_with_fraction_cmp(uint64_t a, uint64_t b) {
 
 #define CKB_SINCE_VALUE_BITS 56
 #define CKB_SINCE_VALUE_MASK 0x00ffffffffffffff
-#define CKB_SINCE_EPOCH_FRACTION_FLAG 0b0010000
+#define CKB_SINCE_EPOCH_FRACTION_FLAG 0b00100000
 
 /*
  * Compare general since value, comparable is set to 1 if the
