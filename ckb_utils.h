@@ -2,14 +2,12 @@
 utils.h
 
 Defines basic utility functions.
-
-This file is imported from
-https://github.com/nervosnetwork/ckb-system-scripts/tree/5e3756ef4d8c90e87149f4790114ad1c003a2f04,
-the credit belongs to @jjyr.
 */
 
 #ifndef CKB_C_STDLIB_CKB_UTILS_H_
 #define CKB_C_STDLIB_CKB_UTILS_H_
+
+#include "stddef.h"
 
 /* a and b are since value,
  return 0 if a is equals to b,
@@ -62,23 +60,27 @@ int ckb_epoch_number_with_fraction_cmp(uint64_t a, uint64_t b) {
 
 #define CKB_SINCE_VALUE_BITS 56
 #define CKB_SINCE_VALUE_MASK 0x00ffffffffffffff
+#define CKB_SINCE_FLAG_METRIC_MASK 0b01100000
 #define CKB_SINCE_EPOCH_FRACTION_FLAG 0b00100000
 
 /*
- * Compare general since value, comparable is set to 1 if the
- * 2 since values are the same type, otherwise comparable is set to 0.
- * Return value is the same as ckb_epoch_number_with_fraction_cmp, notice
- * return value here only makes sense when comparable is set to 1.
+ * Compare since, comparable is set to 1 when the
+ * a and b since values have the same flags, otherwise comparable is set to 0.
+ *
+ * Return value only has meaning when the comparable is set to 1:
+ * return 0 if a is equals to b,
+ * return -1 if a is less than b,
+ * return 1 if a is greater than b
  */
 int ckb_since_cmp(uint64_t a, uint64_t b, int *comparable) {
-  uint8_t a_flags = a >> CKB_SINCE_VALUE_BITS;
-  uint8_t b_flags = b >> CKB_SINCE_VALUE_BITS;
-  if (a_flags != b_flags) {
+  uint8_t a_flag = a >> CKB_SINCE_VALUE_BITS;
+  uint8_t b_flag = b >> CKB_SINCE_VALUE_BITS;
+  if (a_flag != b_flag) {
     *comparable = 0;
-    return 10;
+    return 0;
   }
   *comparable = 1;
-  if (a_flags == CKB_SINCE_EPOCH_FRACTION_FLAG) {
+  if ((a_flag & CKB_SINCE_FLAG_METRIC_MASK) == CKB_SINCE_EPOCH_FRACTION_FLAG) {
     return ckb_epoch_number_with_fraction_cmp(a, b);
   } else {
     uint64_t a_value = a & CKB_SINCE_VALUE_MASK;
