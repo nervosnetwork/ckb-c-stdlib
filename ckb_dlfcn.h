@@ -144,7 +144,11 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
         uint64_t prepad = ph->p_vaddr % RISCV_PGSIZE;
         uint64_t vaddr = ph->p_vaddr - prepad;
         uint64_t memsz = ROUNDUP(prepad + ph->p_memsz, RISCV_PGSIZE);
-        if (vaddr + memsz > aligned_size) {
+        uint64_t size = 0;
+        if (__builtin_uaddl_overflow(vaddr, memsz, &size)) {
+          return ERROR_INVALID_ELF;
+        }
+        if (size > aligned_size) {
           return ERROR_MEMORY_NOT_ENOUGH;
         }
         ret = ckb_load_cell_code(aligned_addr + vaddr, memsz, ph->p_offset,
@@ -155,7 +159,11 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
         max_consumed_size = MAX(max_consumed_size, vaddr + memsz);
       } else {
         uint64_t filesz = ph->p_filesz;
-        uint64_t consumed_end = ROUNDUP(ph->p_vaddr + filesz, RISCV_PGSIZE);
+        uint64_t size = 0;
+        if (__builtin_uaddl_overflow(ph->p_vaddr, filesz, &size)) {
+          return ERROR_INVALID_ELF;
+        }
+        uint64_t consumed_end = ROUNDUP(size, RISCV_PGSIZE);
         if (consumed_end > aligned_size) {
           return ERROR_MEMORY_NOT_ENOUGH;
         }
