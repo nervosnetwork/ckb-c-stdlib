@@ -57,6 +57,18 @@ typedef struct {
   uint8_t cv_stack[(BLAKE3_MAX_DEPTH + 1) * BLAKE3_OUT_LEN];
 } blake3_hasher;
 
+/* Streaming API */
+void blake3_hasher_init(blake3_hasher *self);
+void blake3_hasher_init_keyed(blake3_hasher *self,
+                              const uint8_t key[BLAKE3_KEY_LEN]);
+void blake3_hasher_init_derive_key(blake3_hasher *self, const char *context);
+void blake3_hasher_update(blake3_hasher *self, const void *input,
+                          size_t input_len);
+void blake3_hasher_finalize(const blake3_hasher *self, uint8_t *out,
+                            size_t out_len);
+void blake3_hasher_finalize_seek(const blake3_hasher *self, uint64_t seek,
+                                 uint8_t *out, size_t out_len);
+
 #ifdef __cplusplus
 }
 #endif
@@ -777,8 +789,8 @@ INLINE void hasher_init_base(blake3_hasher *self, const uint32_t key[8],
   self->cv_stack_len = 0;
 }
 
-static void blake3_hasher_update(blake3_hasher *self, const void *input,
-                                 size_t input_len) {
+void blake3_hasher_update(blake3_hasher *self, const void *input,
+                          size_t input_len) {
   // Explicitly checking for zero avoids causing UB by passing a null pointer
   // to memcpy. This comes up in practice with things like:
   //   std::vector<uint8_t> v;
@@ -886,9 +898,8 @@ static void blake3_hasher_update(blake3_hasher *self, const void *input,
   }
 }
 
-static void blake3_hasher_finalize_seek(const blake3_hasher *self,
-                                        uint64_t seek, uint8_t *out,
-                                        size_t out_len) {
+void blake3_hasher_finalize_seek(const blake3_hasher *self, uint64_t seek,
+                                 uint8_t *out, size_t out_len) {
   // Explicitly checking for zero avoids causing UB by passing a null pointer
   // to memcpy. This comes up in practice with things like:
   //   std::vector<uint8_t> v;
@@ -931,24 +942,21 @@ static void blake3_hasher_finalize_seek(const blake3_hasher *self,
   output_root_bytes(&output, seek, out, out_len);
 }
 
-static void blake3_hasher_finalize(const blake3_hasher *self, uint8_t *out,
-                                   size_t out_len) {
+void blake3_hasher_finalize(const blake3_hasher *self, uint8_t *out,
+                            size_t out_len) {
   blake3_hasher_finalize_seek(self, 0, out, out_len);
 }
 
-static void blake3_hasher_init(blake3_hasher *self) {
-  hasher_init_base(self, IV, 0);
-}
+void blake3_hasher_init(blake3_hasher *self) { hasher_init_base(self, IV, 0); }
 
-static void blake3_hasher_init_keyed(blake3_hasher *self,
-                                     const uint8_t key[BLAKE3_KEY_LEN]) {
+void blake3_hasher_init_keyed(blake3_hasher *self,
+                              const uint8_t key[BLAKE3_KEY_LEN]) {
   uint32_t key_words[8];
   load_key_words(key, key_words);
   hasher_init_base(self, key_words, KEYED_HASH);
 }
 
-static void blake3_hasher_init_derive_key(blake3_hasher *self,
-                                          const char *context) {
+void blake3_hasher_init_derive_key(blake3_hasher *self, const char *context) {
   blake3_hasher context_hasher;
   hasher_init_base(&context_hasher, IV, DERIVE_KEY_CONTEXT);
   blake3_hasher_update(&context_hasher, context, strlen(context));
