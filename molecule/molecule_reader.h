@@ -2,9 +2,7 @@
 #define MOLECULE_READER_H
 
 #ifdef __cplusplus
-#define _CPP_BEGIN extern "C" {
-#define _CPP_END }
-_CPP_BEGIN
+extern "C" {
 #endif /* __cplusplus */
 
 #include <stdbool.h>
@@ -13,9 +11,6 @@ _CPP_BEGIN
 /*
  * This part is not for normal users.
  */
-
-// Test if the host is big endian machine.
-#define is_le() (*(unsigned char *)&(uint16_t){1})
 
 /*
  * Definitions of types and simple utilities.
@@ -65,7 +60,12 @@ typedef struct {
 /* Utilities. */
 
 mol_num_t mol_unpack_number(const uint8_t *src) {
-  if (is_le()) {
+  const static union {
+    uint16_t i;
+    char c[2];
+  } bint = {0x0102};
+
+  if (bint.c[0] != 1) {
     return *(const uint32_t *)src;
   } else {
     uint32_t output = 0;
@@ -223,12 +223,8 @@ mol_seg_t mol_fixvec_slice_raw_bytes(const mol_seg_t *input) {
  * Undef macros which are internal use only.
  */
 
-#undef is_le
-
 #ifdef __cplusplus
-_CPP_END
-#undef _CPP_BEGIN
-#undef _CPP_END
+}
 #endif /* __cplusplus */
 
 #endif /* MOLECULE_READER_H */

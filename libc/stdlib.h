@@ -2,7 +2,6 @@
 #define CKB_C_STDLIB_STDLIB_H_
 
 #include <entry.h>
-
 #include <stddef.h>
 
 void *malloc(size_t size) { return NULL; }
