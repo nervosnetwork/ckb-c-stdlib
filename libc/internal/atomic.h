@@ -1,5 +1,6 @@
 #ifndef CKB_C_STDLIB_INTERNAL_ATOMIC_H_
 #define CKB_C_STDLIB_INTERNAL_ATOMIC_H_
+#include <internal/types.h>
 
 /*
  * Modified from
