@@ -2,8 +2,6 @@
 #define CKB_C_STDLIB_ENTRY_H_
 
 #ifndef CKB_DECLARATION_ONLY
-#ifndef __IMPL_INCLUDED__
-#define __IMPL_INCLUDED__
 #include "src/impl.c"
 
 #ifndef __SHARED_LIBRARY__
@@ -26,7 +24,6 @@ __attribute__((visibility("default"))) __attribute__((naked)) void _start() {
       "ecall");
 }
 #endif /* __SHARED_LIBRARY__ */
-#endif /*__IMPL_INCLUDED__ */
 #endif /* CKB_DECLARATION_ONLY*/
 
 #endif /* CKB_C_STDLIB_ENTRY_H_ */
