@@ -9,8 +9,8 @@
 // link them together.
 //
 
-#ifndef __IMPL_INCLUDED__
-#define __IMPL_INCLUDED__
+#ifndef __CKB_IMPL_INCLUDED__
+#define __CKB_IMPL_INCLUDED__
 
 #include <internal/atomic.h>
 #include <internal/types.h>
@@ -1190,4 +1190,4 @@ int printf(const char *format, ...) { return 0; }
 
 #endif /* CKB_C_STDLIB_PRINTF */
 
-#endif  // __IMPL_INCLUDED__
+#endif  // __CKB_IMPL_INCLUDED__
