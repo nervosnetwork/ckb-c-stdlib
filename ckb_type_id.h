@@ -7,14 +7,12 @@
 #include "blockchain.h"
 #include "ckb_syscalls.h"
 
-// Given an offset into args of current script, this function validates if
-// current transaction confronts to the type ID rules. A 32-byte data starting
-// from offset in current runnning script args, will be used as the actual type
-// ID.
-int ckb_validate_type_id(size_t offset);
+// Given a 32-byte type id, this function validates if
+// current transaction confronts to the type ID rules.
+int ckb_validate_type_id(const uint8_t type_id[32]);
 // Loading type ID from current script args, type_id must be at least 32 byte
 // long.
-int ckb_load_type_id(size_t offset, uint8_t* type_id);
+int ckb_load_type_id_from_script_args(size_t offset, uint8_t type_id[32]);
 
 #ifndef CKB_TYPE_ID_DECLARATION_ONLY
 
@@ -24,7 +22,7 @@ int ckb_load_type_id(size_t offset, uint8_t* type_id);
 #define DEBUG(s)
 #endif /* CKB_TYPE_ID_DEBUG */
 
-int ckb_load_type_id(size_t offset, uint8_t* type_id) {
+int ckb_load_type_id_from_script_args(size_t offset, uint8_t type_id[32]) {
   // TODO: it is possible to simply load the script header, then only load the
   // 32 byte requested data based on offsets.
   uint8_t current_script[32768];
@@ -102,7 +100,7 @@ int _ckb_locate_first_type_id_output_index(uint64_t* index) {
   return CKB_SUCCESS;
 }
 
-int ckb_validate_type_id(size_t offset) {
+int ckb_validate_type_id(const uint8_t type_id[32]) {
   int has_second_type_id_input = _ckb_has_type_id_cell(1, 1);
   int has_second_type_id_output = _ckb_has_type_id_cell(1, 0);
   if (has_second_type_id_input || has_second_type_id_output) {
@@ -116,13 +114,8 @@ int ckb_validate_type_id(size_t offset) {
   if (!has_first_type_id_input) {
     // We are creating a new type ID cell here. Additional checkings are needed
     // to ensure the type ID is legit.
-    uint8_t current_type_id[32];
-    int ret = ckb_load_type_id(offset, current_type_id);
-    if (ret != CKB_SUCCESS) {
-      return ret;
-    }
     uint64_t index = 0xFFFFFFFFFFFFFFFF;
-    ret = _ckb_locate_first_type_id_output_index(&index);
+    int ret = _ckb_locate_first_type_id_output_index(&index);
     if (ret != CKB_SUCCESS) {
       return ret;
     }
@@ -142,7 +135,7 @@ int ckb_validate_type_id(size_t offset) {
     blake2b_update(&blake2b_ctx, (uint8_t*)(&index), sizeof(index));
     uint8_t expected_type_id[32];
     blake2b_final(&blake2b_ctx, expected_type_id, 32);
-    if (memcmp(expected_type_id, current_type_id, 32) != 0) {
+    if (memcmp(expected_type_id, type_id, 32) != 0) {
       DEBUG("Invalid type ID!");
       return CKB_INVALID_DATA;
     }
