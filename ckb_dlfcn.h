@@ -91,8 +91,9 @@ typedef struct {
   uint8_t *base_addr;
 } CkbDlfcnContext;
 
-int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
-               size_t aligned_size, void **handle, size_t *consumed_size) {
+int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
+                uint8_t *aligned_addr, size_t aligned_size, void **handle,
+                size_t *consumed_size) {
   if (sizeof(CkbDlfcnContext) > RISCV_PGSIZE || aligned_size < RISCV_PGSIZE) {
     return ERROR_CONTEXT_FAILURE;
   }
@@ -104,7 +105,7 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
   context->base_addr = aligned_addr;
 
   size_t index = SIZE_MAX;
-  int ret = ckb_look_for_dep_with_hash(dep_cell_data_hash, &index);
+  int ret = ckb_look_for_dep_with_hash2(dep_cell_hash, hash_type, &index);
   if (ret != CKB_SUCCESS) {
     return ret;
   }
@@ -264,6 +265,12 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
   *handle = (void *)context;
   *consumed_size = max_consumed_size + RISCV_PGSIZE;
   return CKB_SUCCESS;
+}
+
+int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
+               size_t aligned_size, void **handle, size_t *consumed_size) {
+  return ckb_dlopen2(dep_cell_data_hash, 0, aligned_addr, aligned_size, handle,
+                     consumed_size);
 }
 
 void *ckb_dlsym(void *handle, const char *symbol) {

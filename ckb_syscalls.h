@@ -329,19 +329,22 @@ int ckb_calculate_inputs_len() {
  * Look for dep cell with specific data hash, data_hash should a buffer with
  * 32 bytes.
  */
-int ckb_look_for_dep_with_hash(const uint8_t* data_hash, size_t* index) {
+int ckb_look_for_dep_with_hash2(const uint8_t* code_hash, uint8_t hash_type,
+                                size_t* index) {
   size_t current = 0;
+  size_t field =
+      (hash_type == 1) ? CKB_CELL_FIELD_TYPE_HASH : CKB_CELL_FIELD_DATA_HASH;
   while (current < SIZE_MAX) {
     uint64_t len = 32;
     uint8_t hash[32];
 
-    int ret = ckb_load_cell_by_field(
-        hash, &len, 0, current, CKB_SOURCE_CELL_DEP, CKB_CELL_FIELD_DATA_HASH);
+    int ret = ckb_load_cell_by_field(hash, &len, 0, current,
+                                     CKB_SOURCE_CELL_DEP, field);
     switch (ret) {
       case CKB_ITEM_MISSING:
         break;
       case CKB_SUCCESS:
-        if (memcmp(data_hash, hash, 32) == 0) {
+        if (memcmp(code_hash, hash, 32) == 0) {
           /* Found a match */
           *index = current;
           return CKB_SUCCESS;
@@ -353,6 +356,10 @@ int ckb_look_for_dep_with_hash(const uint8_t* data_hash, size_t* index) {
     current++;
   }
   return CKB_INDEX_OUT_OF_BOUND;
+}
+
+int ckb_look_for_dep_with_hash(const uint8_t* data_hash, size_t* index) {
+  return ckb_look_for_dep_with_hash2(data_hash, 0, index);
 }
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALLS_H_ */
