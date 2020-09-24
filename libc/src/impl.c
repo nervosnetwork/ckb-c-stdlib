@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 /*
  * The implementation here is based on musl-libc with modifications for our
@@ -550,6 +551,27 @@ void qsort(void *base, size_t nel, size_t width, cmpfun cmp) {
     }
     head -= width;
   }
+}
+
+void *bsearch(const void *key, const void *base, size_t num, size_t size,
+              cmp_func_t cmp) {
+  const char *pivot;
+  int result;
+
+  while (num > 0) {
+    pivot = base + (num >> 1) * size;
+    result = cmp(key, pivot);
+
+    if (result == 0) return (void *)pivot;
+
+    if (result > 0) {
+      base = pivot + size;
+      num--;
+    }
+    num >>= 1;
+  }
+
+  return NULL;
 }
 
 // printf, pass -D CKB_C_STDLIB_PRINTF to enable printf
