@@ -552,6 +552,8 @@ void qsort(void *base, size_t nel, size_t width, cmpfun cmp) {
   }
 }
 
+//  bsearch implementation below is modified from
+// http://git.musl-libc.org/cgit/musl/tree/src/stdlib/bsearch.c
 void *bsearch(const void *key, const void *base, size_t nel, size_t width,
               int (*cmp)(const void *, const void *)) {
   void *try_v;
