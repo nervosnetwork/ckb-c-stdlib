@@ -3,6 +3,8 @@
 The target of simulator is to compile, run code (which will be run on CKB-VM) on any OS and PC.
 The we can use our favorite IDE and OS. It can only speed up development but don't skip necessary steps like testing on real CKB-VM.
 
+This is a library: see [ckb-miscellaneous-scripts](https://github.com/nervosnetwork/ckb-miscellaneous-scripts/tree/master/simulator) to get more idea about how to use it.
+
 ## Changes
 There some changes:
 - All contents under simulator folder
@@ -11,14 +13,8 @@ There some changes:
 If you don't want to use the simulator feature, just ignore the folder.
 
 ## How to run
-See more in run-simulator.sh script. 
+See more in run-simulator.sh script in [ckb-miscellaneous-scripts](https://github.com/nervosnetwork/ckb-miscellaneous-scripts/tree/master/simulator). 
 
-For rsa_sighash_all.c it has a specific version, can run it by:
-```bash
-cd simulator
-mkdir -p build
-make
-```
 ## How to get json file
 Dump json using [ckb-transaction-dumper](https://github.com/xxuejie/ckb-transaction-dumper). We need a running mainnet
 on local machine to dump json. In the following example,  we named the dumped json: "original.json".

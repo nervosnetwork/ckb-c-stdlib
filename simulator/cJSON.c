@@ -68,12 +68,12 @@
 #ifdef true
 #undef true
 #endif
-#define true((cJSON_bool)1)
+#define true 1
 
 #ifdef false
 #undef false
 #endif
-#define false((cJSON_bool)0)
+#define false 0
 
 /* define isnan and isinf for ANSI C, if in C99 or above, isnan and isinf has
  * been defined in math.h */
