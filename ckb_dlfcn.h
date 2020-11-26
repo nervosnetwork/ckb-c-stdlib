@@ -3,6 +3,20 @@
 
 #include "ckb_syscalls.h"
 
+int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
+               size_t aligned_size, void **handle, size_t *consumed_size) {
+  return ckb_dlopen2(dep_cell_data_hash, 0, aligned_addr, aligned_size, handle,
+                     consumed_size);
+}
+
+#ifndef CKB_STDLIB_NO_SYSCALL_IMPL
+
+int _ckb_load_cell_code(void *addr, size_t memory_size, size_t content_offset,
+                        size_t content_size, size_t index, size_t source) {
+  return syscall(SYS_ckb_load_cell_data_as_code, addr, memory_size,
+                 content_offset, content_size, index, source);
+}
+
 /*
  * The ELF parsing code here is inspired from
  * https://github.com/riscv/riscv-pk/blob/master/pk/elf.h, original code is in
@@ -152,8 +166,8 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (size > aligned_size) {
           return ERROR_MEMORY_NOT_ENOUGH;
         }
-        ret = ckb_load_cell_code(aligned_addr + vaddr, memsz, ph->p_offset,
-                                 ph->p_filesz, index, CKB_SOURCE_CELL_DEP);
+        ret = _ckb_load_cell_code(aligned_addr + vaddr, memsz, ph->p_offset,
+                                  ph->p_filesz, index, CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
         }
@@ -267,12 +281,6 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
   return CKB_SUCCESS;
 }
 
-int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
-               size_t aligned_size, void **handle, size_t *consumed_size) {
-  return ckb_dlopen2(dep_cell_data_hash, 0, aligned_addr, aligned_size, handle,
-                     consumed_size);
-}
-
 void *ckb_dlsym(void *handle, const char *symbol) {
   CkbDlfcnContext *context = (CkbDlfcnContext *)handle;
 
@@ -286,5 +294,7 @@ void *ckb_dlsym(void *handle, const char *symbol) {
 
   return NULL;
 }
+
+#endif /* CKB_STDLIB_NO_SYSCALL_IMPL */
 
 #endif /* CKB_C_STDLIB_CKB_DLFCN_H_ */
