@@ -123,7 +123,7 @@ void load_offset(uint8_t* source_buff, uint64_t source_size, void* addr,
 
 void blake2b_hash(void* ptr, size_t size, uint8_t* hash) {
   blake2b_state ctx;
-  blake2b_init(&ctx, HASH_SIZE);
+  ckb_blake2b_init(&ctx, HASH_SIZE);
   blake2b_update(&ctx, ptr, size);
   blake2b_final(&ctx, hash, HASH_SIZE);
 }

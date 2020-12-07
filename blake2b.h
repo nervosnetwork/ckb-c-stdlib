@@ -69,6 +69,9 @@ typedef struct blake2b_param__ blake2b_param;
 enum { BLAKE2_DUMMY_2 = 1 / (sizeof(blake2b_param) == BLAKE2B_OUTBYTES) };
 
 /* Streaming API */
+
+/* For future code, you should always use ckb_blake2b_init for convenience */
+int ckb_blake2b_init(blake2b_state *S, size_t outlen);
 int blake2b_init(blake2b_state *S, size_t outlen);
 int blake2b_init_key(blake2b_state *S, size_t outlen, const void *key,
                      size_t keylen);
@@ -162,6 +165,30 @@ static BLAKE2_INLINE void secure_zero_memory(void *v, size_t n) {
   memset_v(v, 0, n);
 }
 
+const char *DEFAULT_PERSONAL = "ckb-default-hash";
+int ckb_blake2b_init(blake2b_state *S, size_t outlen) {
+  blake2b_param P[1];
+
+  if ((!outlen) || (outlen > BLAKE2B_OUTBYTES)) return -1;
+
+  P->digest_length = (uint8_t)outlen;
+  P->key_length = 0;
+  P->fanout = 1;
+  P->depth = 1;
+  store32(&P->leaf_length, 0);
+  store32(&P->node_offset, 0);
+  store32(&P->xof_length, 0);
+  P->node_depth = 0;
+  P->inner_length = 0;
+  memset(P->reserved, 0, sizeof(P->reserved));
+  memset(P->salt, 0, sizeof(P->salt));
+  memset(P->personal, 0, sizeof(P->personal));
+  for (int i = 0; i < BLAKE2B_PERSONALBYTES; ++i) {
+    (P->personal)[i] = DEFAULT_PERSONAL[i];
+  }
+  return blake2b_init_param(S, P);
+}
+
 #endif
 
 // blake2b-ref.c
@@ -228,7 +255,6 @@ int blake2b_init_param(blake2b_state *S, const blake2b_param *P) {
   return 0;
 }
 
-const char *DEFAULT_PERSONAL = "ckb-default-hash";
 int blake2b_init(blake2b_state *S, size_t outlen) {
   blake2b_param P[1];
 
