@@ -130,7 +130,7 @@ int ckb_validate_type_id(const uint8_t type_id[32]) {
       return ret;
     }
     blake2b_state blake2b_ctx;
-    blake2b_init(&blake2b_ctx, 32);
+    ckb_blake2b_init(&blake2b_ctx, 32);
     blake2b_update(&blake2b_ctx, buffer, len);
     blake2b_update(&blake2b_ctx, (uint8_t*)(&index), sizeof(index));
     uint8_t expected_type_id[32];
