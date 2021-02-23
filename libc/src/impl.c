@@ -402,7 +402,7 @@ static void cycle(size_t width, unsigned char *ar[], int n) {
 
 /* shl() and shr() need n > 0 */
 static inline void shl(size_t p[2], int n) {
-  if (n >= 8 * sizeof(size_t)) {
+  if (n >= (int)(8 * sizeof(size_t))) {
     n -= 8 * sizeof(size_t);
     p[1] = p[0];
     p[0] = 0;
@@ -413,7 +413,7 @@ static inline void shl(size_t p[2], int n) {
 }
 
 static inline void shr(size_t p[2], int n) {
-  if (n >= 8 * sizeof(size_t)) {
+  if (n >= (int)(8 * sizeof(size_t))) {
     n -= 8 * sizeof(size_t);
     p[0] = p[1];
     p[1] = 0;
@@ -512,7 +512,7 @@ void qsort(void *base, size_t nel, size_t width, cmpfun cmp) {
       shr(p, 2);
       pshift += 2;
     } else {
-      if (lp[pshift - 1] >= high - head) {
+      if (lp[pshift - 1] >= (size_t)(high - head)) {
         trinkle(head, width, cmp, p, pshift, 0, lp);
       } else {
         sift(head, width, cmp, pshift, lp);
