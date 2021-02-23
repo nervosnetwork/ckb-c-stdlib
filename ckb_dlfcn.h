@@ -248,7 +248,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         }
         relocation_size -= load_size;
         current_offset += len;
-        for (int j = 0; j < load_size; j++) {
+        for (size_t j = 0; j < load_size; j++) {
           Elf64_Rela *r = &relocations[j];
           if (r->r_info != R_RISCV_RELATIVE) {
             /* Only relative relocation is supported now, we might add more
