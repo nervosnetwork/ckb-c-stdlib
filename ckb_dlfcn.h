@@ -98,7 +98,6 @@ typedef struct {
 #define ERROR_OUT_OF_BOUND -24
 #define ERROR_INVALID_ARGS -25
 
-
 typedef struct {
   Elf64_Sym *dynsyms;
   const char *dynstr;
@@ -107,15 +106,15 @@ typedef struct {
   size_t size;
 } CkbDlfcnContext;
 
-void padding_zero(uint8_t* buff, uint64_t size, uint64_t already_written) {
+void append_zero(uint8_t *buff, uint64_t size, uint64_t already_written) {
   if (size > already_written) {
     memset(buff + already_written, 0, size - already_written);
   }
 }
 
-int check_in_range(const void* p, const CkbDlfcnContext* context) {
-  void* begin = (void*)(context->base_addr);
-  void* end = (void*)(context->base_addr + context->size);
+int check_in_range(const void *p, const CkbDlfcnContext *context) {
+  void *begin = (void *)(context->base_addr);
+  void *end = (void *)(context->base_addr + context->size);
   if (begin <= p && p < end) {
     return 1;
   } else {
@@ -124,27 +123,28 @@ int check_in_range(const void* p, const CkbDlfcnContext* context) {
 }
 
 // safe version of   #define ROUNDUP(a, b) ((((a)-1) / (b) + 1) * (b))
-int roundup(uint64_t a, uint64_t b, uint64_t* value) {
+int roundup(uint64_t a, uint64_t b, uint64_t *value) {
   // when a == 0, (a-1)/b + 1 is zero, but we don't want to use this "behavior".
   if (a == 0) {
     *value = 0;
     return 0;
   }
-  uint64_t d = (a-1)/b;
-  return __builtin_umulll_overflow(d+1, b, value);
+  uint64_t d = (a - 1) / b;
+  return __builtin_umull_overflow(d + 1, b, value);
 }
 
 // here we have an assumption: the pointer uint8_t* has 64-bits.
 // it's true for CKB-VM
-uint8_t* addr_offset_checked(uint8_t* aligned_addr, uint64_t aligned_size, uint64_t offset) {
+uint8_t *addr_offset_checked(uint8_t *aligned_addr, uint64_t aligned_size,
+                             uint64_t offset) {
   uint64_t target = 0;
   // check in range
   if (offset < aligned_size) {
     // check overflow
-    if (__builtin_uaddll_overflow((uint64_t)aligned_addr, offset, &target)) {
+    if (__builtin_uaddl_overflow((uint64_t)aligned_addr, offset, &target)) {
       return 0;
     } else {
-      return (uint8_t*)target;
+      return (uint8_t *)target;
     }
   } else {
     return 0;
@@ -157,11 +157,12 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
   if (sizeof(CkbDlfcnContext) > RISCV_PGSIZE || aligned_size < RISCV_PGSIZE) {
     return ERROR_CONTEXT_FAILURE;
   }
-  if (dep_cell_hash == 0 || aligned_size == 0 || aligned_addr == 0 || handle == 0 || consumed_size == 0) {
+  if (dep_cell_hash == 0 || aligned_size == 0 || aligned_addr == 0 ||
+      handle == 0 || consumed_size == 0) {
     return ERROR_INVALID_ARGS;
   }
   uint64_t _end = 0;
-  if (__builtin_uaddll_overflow((uint64_t)aligned_addr, aligned_size, &_end)) {
+  if (__builtin_uaddl_overflow((uint64_t)aligned_addr, aligned_size, &_end)) {
     return ERROR_OUT_OF_BOUND;
   }
 
@@ -171,7 +172,6 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
   aligned_size -= RISCV_PGSIZE;
   context->base_addr = aligned_addr;
   context->size = aligned_size;
-
 
   size_t index = SIZE_MAX;
   int ret = ckb_look_for_dep_with_hash2(dep_cell_hash, hash_type, &index);
@@ -226,12 +226,15 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         }
         // issue:
         // 3.ckb_dlopen2 failsto zero-initialize executable segments
-        // it should be before call "_ckb_load_cell_code" since it will mark it as executable and
-        // can't write after that. (W ^ X)
-
-        padding_zero(aligned_addr + vaddr, memsz, ph->p_filesz);
-        ret = _ckb_load_cell_code(aligned_addr + vaddr, memsz, ph->p_offset,
-                                  ph->p_filesz, index, CKB_SOURCE_CELL_DEP);
+        // it should be before call "_ckb_load_cell_code" since it will mark it
+        // as executable and can't write after that. (W ^ X)
+        uint8_t *addr2 = addr_offset_checked(aligned_addr, aligned_size, vaddr);
+        if (addr2 == 0) {
+          return ERROR_INVALID_ELF;
+        }
+        append_zero(addr2, memsz, ph->p_filesz);
+        ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset, ph->p_filesz,
+                                  index, CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
         }
@@ -256,13 +259,13 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
           return ERROR_MEMORY_NOT_ENOUGH;
         }
         // issue:
-        // 10. Potential integer overflowwhen loading non-executable segments
-        uint8_t* addr2 = addr_offset_checked(aligned_addr, aligned_size, vaddr);
+        // 10. Potential integer overflow when loading non-executable segments
+        uint8_t *addr2 = addr_offset_checked(aligned_addr, aligned_size, vaddr);
         if (addr2 == 0) {
           return ERROR_INVALID_ARGS;
         }
-        ret = ckb_load_cell_data(addr2, &filesz,
-                                 ph->p_offset, index, CKB_SOURCE_CELL_DEP);
+        ret = ckb_load_cell_data(addr2, &filesz, ph->p_offset, index,
+                                 CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
         }
@@ -328,7 +331,8 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
           return ret;
         }
         // issue
-        // 6.ckb_dlopen2 fails to check the returned buffer size when loading relocation entries
+        // 6.ckb_dlopen2 fails to check the returned buffer size when loading
+        // relocation entries
         if (load_length < load_size * sizeof(Elf64_Rela)) {
           return ERROR_INVALID_ELF;
         }
@@ -342,12 +346,16 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
             return ERROR_INVALID_ELF;
           }
           // issue:
-          // 7. Potential out-of-bounds writewhen processing relocations
-          if (r->r_offset >= aligned_size || r->r_addend >= aligned_size || r->r_addend < 0) {
+          // 7. Potential out-of-bounds write when processing relocations
+          if (r->r_offset >= aligned_size ||
+              r->r_addend >= (int64_t)aligned_size || r->r_addend < 0) {
             return ERROR_INVALID_ELF;
           }
-          *((uint64_t *)(aligned_addr + r->r_offset)) =
-              (uint64_t)(aligned_addr + r->r_addend);
+          // fuzzer error:
+          // runtime error: store to misaligned address 0x7f97a4389039 for type
+          // 'uint64_t' (aka 'unsigned long'), which requires 8 byte alignment
+          memcpy(aligned_addr + r->r_offset, aligned_addr + r->r_addend,
+                 sizeof(uint64_t));
         }
       }
     } else if (sh->sh_type == SHT_DYNSYM) {
@@ -357,24 +365,29 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
       }
       // issue:
       // 8. Validation missing when resolving the .dynstr and .dynsym sections
-      if (sh->sh_offset >= aligned_size) {
+      uint8_t *addr2 =
+          addr_offset_checked(aligned_addr, aligned_size, sh->sh_offset);
+      if (addr2 == 0) {
         return ERROR_INVALID_ELF;
       }
-      context->dynsyms = (Elf64_Sym *)(aligned_addr + sh->sh_offset);
+      context->dynsyms = (Elf64_Sym *)addr2;
       context->dynsym_size = sh->sh_size / sh->sh_entsize;
     } else if (sh->sh_type == SHT_STRTAB) {
       // issue:
-      // 5. Potential out-of-boundsreadwhen locating the .dynstrsection
+      // 5. Potential out-of-bounds read when locating the .dynstr section
       char DYNSTR[] = ".dynstr";
-      const char *current_str = shrtab + sh->sh_name;
-      if (sh->sh_name < (4096-sizeof(DYNSTR))) {
+      if (sh->sh_name < (4096 - sizeof(DYNSTR))) {
+        const char *current_str = shrtab + sh->sh_name;
         if (strcmp(DYNSTR, current_str) == 0) {
           // issue:
-          // 8. Validation missing when resolving the .dynstr and .dynsym sections
-          if (sh->sh_offset >= aligned_size) {
+          // 8. Validation missing when resolving the .dynstr and .dynsym
+          // sections
+          const uint8_t *addr2 =
+              addr_offset_checked(aligned_addr, aligned_size, sh->sh_offset);
+          if (addr2 == 0) {
             return ERROR_INVALID_ELF;
           }
-          context->dynstr = (const char *)(aligned_addr + sh->sh_offset);
+          context->dynstr = (const char *)addr2;
         }
       }
     }
@@ -392,6 +405,8 @@ void *ckb_dlsym(void *handle, const char *symbol) {
 
   for (uint64_t i = 0; i < context->dynsym_size; i++) {
     Elf64_Sym *sym = &context->dynsyms[i];
+    // here the fuzzer reports "heap-buffer-overflow" issue
+    // we will check "str" in range next
     const char *str = context->dynstr + sym->st_name;
     // issue:
     // 9. Possible out-of-bounds read in ckb_dlsym
@@ -399,7 +414,7 @@ void *ckb_dlsym(void *handle, const char *symbol) {
       return 0;
     }
     if (strcmp(str, symbol) == 0) {
-      void* p = (void *)(context->base_addr + sym->st_value);
+      void *p = (void *)(context->base_addr + sym->st_value);
       if (!check_in_range(p, context)) {
         return 0;
       } else {
