@@ -230,14 +230,8 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         }
         max_consumed_size = MAX(max_consumed_size, vaddr + memsz);
       } else {
-        uint64_t prepad = ph->p_vaddr % RISCV_PGSIZE;
-        uint64_t vaddr = ph->p_vaddr - prepad;
-
-        uint64_t filesz = 0;
-        if (roundup(prepad + ph->p_filesz, RISCV_PGSIZE, &filesz)) {
-          return ERROR_INVALID_ELF;
-        }
-        unsigned long size = 0;
+        uint64_t filesz = ph->p_filesz;
+        uint64_t size = 0;
         if (__builtin_uaddl_overflow(ph->p_vaddr, filesz, &size)) {
           return ERROR_INVALID_ELF;
         }
@@ -248,9 +242,10 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (consumed_end > aligned_size) {
           return ERROR_MEMORY_NOT_ENOUGH;
         }
-        uint8_t *addr2 = addr_offset_checked(aligned_addr, aligned_size, vaddr);
+        uint8_t *addr2 =
+            addr_offset_checked(aligned_addr, aligned_size, ph->p_vaddr);
         if (addr2 == 0) {
-          return ERROR_INVALID_ARGS;
+          return ERROR_INVALID_ELF;
         }
         ret = ckb_load_cell_data(addr2, &filesz, ph->p_offset, index,
                                  CKB_SOURCE_CELL_DEP);
@@ -332,8 +327,8 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
               r->r_addend >= (int64_t)aligned_size || r->r_addend < 0) {
             return ERROR_INVALID_ELF;
           }
-          memcpy(aligned_addr + r->r_offset, aligned_addr + r->r_addend,
-                 sizeof(uint64_t));
+          uint64_t temp = (uint64_t)(aligned_addr + r->r_addend);
+          memcpy(aligned_addr + r->r_offset, &temp, sizeof(uint64_t));
         }
       }
     } else if (sh->sh_type == SHT_DYNSYM) {
