@@ -106,12 +106,6 @@ typedef struct {
   size_t size;
 } CkbDlfcnContext;
 
-void append_zero(uint8_t *buff, uint64_t size, uint64_t already_written) {
-  if (size > already_written) {
-    memset(buff + already_written, 0, size - already_written);
-  }
-}
-
 int check_in_range(const void *p, const CkbDlfcnContext *context) {
   void *begin = (void *)(context->base_addr);
   void *end = (void *)(context->base_addr + context->size);
@@ -222,7 +216,6 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (addr2 == 0) {
           return ERROR_INVALID_ELF;
         }
-        append_zero(addr2, memsz, ph->p_filesz);
         ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset, ph->p_filesz,
                                   index, CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
@@ -231,6 +224,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         max_consumed_size = MAX(max_consumed_size, vaddr + memsz);
       } else {
         uint64_t filesz = ph->p_filesz;
+        uint64_t memsz = ph->p_memsz;
         uint64_t size = 0;
         if (__builtin_uaddl_overflow(ph->p_vaddr, filesz, &size)) {
           return ERROR_INVALID_ELF;
@@ -247,12 +241,12 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (addr2 == 0) {
           return ERROR_INVALID_ELF;
         }
-        ret = ckb_load_cell_data(addr2, &filesz, ph->p_offset, index,
+        ret = ckb_load_cell_data(addr2, &memsz, ph->p_offset, index,
                                  CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
         }
-        if (filesz < ph->p_filesz) {
+        if (memsz < ph->p_filesz) {
           return ERROR_INVALID_ELF;
         }
         max_consumed_size = MAX(max_consumed_size, consumed_end);
@@ -323,8 +317,8 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
              * later */
             return ERROR_INVALID_ELF;
           }
-          if (r->r_offset >= aligned_size ||
-              r->r_addend >= (int64_t)aligned_size || r->r_addend < 0) {
+          if (r->r_offset >= (aligned_size - sizeof(uint64_t)) ||
+              r->r_addend >= (int64_t)(aligned_size) || r->r_addend < 0) {
             return ERROR_INVALID_ELF;
           }
           uint64_t temp = (uint64_t)(aligned_addr + r->r_addend);
@@ -344,7 +338,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
       context->dynsyms = (Elf64_Sym *)addr2;
       context->dynsym_size = sh->sh_size / sh->sh_entsize;
     } else if (sh->sh_type == SHT_STRTAB) {
-      char DYNSTR[] = ".dynstr";
+      static char DYNSTR[] = ".dynstr";
       if (sh->sh_name < (4096 - sizeof(DYNSTR))) {
         const char *current_str = shrtab + sh->sh_name;
         if (strcmp(DYNSTR, current_str) == 0) {
