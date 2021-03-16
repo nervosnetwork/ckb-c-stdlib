@@ -18,12 +18,11 @@ extern "C" {
 #define MOL2_EXIT exit
 #endif
 
-
 #ifndef MOL2_PANIC
 #define MOL2_PANIC(err)                                   \
   do {                                                    \
     mol2_printf("Error at %s: %d\n", __FILE__, __LINE__); \
-    MOL2_EXIT(err);                                        \
+    MOL2_EXIT(err);                                       \
   } while (0)
 //#define MOL2_PANIC(err) do {printf("Error at %s: %d, %d\n", __FILE__,
 //__LINE__, err); } while(0)

@@ -61,8 +61,7 @@ int smt_state_insert(smt_state_t *state, const uint8_t *key,
   return 0;
 }
 
-int smt_state_fetch(smt_state_t *state, const uint8_t *key,
-                    uint8_t *value) {
+int smt_state_fetch(smt_state_t *state, const uint8_t *key, uint8_t *value) {
   int32_t i = state->len - 1;
   for (; i >= 0; i--) {
     if (memcmp(key, state->pairs[i].key, SMT_KEY_BYTES) == 0) {
@@ -159,8 +158,7 @@ int _smt_zero_value(const uint8_t *value) {
 }
 
 /* Notice that output might collide with one of lhs, or rhs */
-void _smt_merge(const uint8_t *lhs, const uint8_t *rhs,
-                uint8_t *output) {
+void _smt_merge(const uint8_t *lhs, const uint8_t *rhs, uint8_t *output) {
   if (_smt_zero_value(lhs)) {
     memcpy(output, rhs, 32);
   } else if (_smt_zero_value(rhs)) {
