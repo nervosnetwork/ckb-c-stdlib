@@ -14,13 +14,16 @@ extern "C" {
 #ifndef mol2_printf
 #define mol2_printf printf
 #endif
-int ckb_exit(signed char code);
+#ifndef MOL2_EXIT
+#define MOL2_EXIT exit
+#endif
+
 
 #ifndef MOL2_PANIC
 #define MOL2_PANIC(err)                                   \
   do {                                                    \
     mol2_printf("Error at %s: %d\n", __FILE__, __LINE__); \
-    ckb_exit(err);                                        \
+    MOL2_EXIT(err);                                        \
   } while (0)
 //#define MOL2_PANIC(err) do {printf("Error at %s: %d, %d\n", __FILE__,
 //__LINE__, err); } while(0)
