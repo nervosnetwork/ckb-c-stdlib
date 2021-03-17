@@ -157,7 +157,7 @@ typedef struct mol2_data_source_t {
 #define MOL2_DATA_SOURCE_LEN(cache_size) \
   (sizeof(mol2_data_source_t) + (cache_size)-MIN_CACHE_SIZE)
 #define DEFAULT_DATA_SOURCE_LENGTH \
-  (sizeof(mol2_data_source_t) + MIN_CACHE_SIZE - MIN_CACHE_SIZE)
+  (sizeof(mol2_data_source_t) + MAX_CACHE_SIZE - MIN_CACHE_SIZE)
 
 /**
  * --------------- MUST READ ----------------------
