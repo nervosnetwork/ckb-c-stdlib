@@ -107,9 +107,13 @@ typedef struct {
 } CkbDlfcnContext;
 
 int check_in_range(const void *p, const CkbDlfcnContext *context) {
-  void *begin = (void *)(context->base_addr);
-  void *end = (void *)(context->base_addr + context->size);
-  if (begin <= p && p < end) {
+  uint64_t end;
+
+  void *begin = context->base_addr;
+  if (__builtin_uaddl_overflow((uint64_t)context->base_addr, context->size, &end)) {
+    return 0;
+  }
+  if (begin <= p && p < (void*)end) {
     return 1;
   } else {
     return 0;
@@ -139,12 +143,30 @@ uint8_t *addr_offset_checked(uint8_t *aligned_addr, uint64_t aligned_size,
   }
 }
 
+void *addr_offset_with_context(const void *addr, uint64_t offset,
+                                  const CkbDlfcnContext *context) {
+  uint64_t target = 0;
+  if (__builtin_uaddl_overflow((uint64_t)addr, offset, &target)) {
+    return 0;
+  } else {
+    if (!check_in_range((const void *)target, context)) {
+      return 0;
+    } else {
+      return (void *)target;
+    }
+  }
+}
+
 int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
                 uint8_t *aligned_addr, size_t aligned_size, void **handle,
                 size_t *consumed_size) {
   if (sizeof(CkbDlfcnContext) > RISCV_PGSIZE || aligned_size < RISCV_PGSIZE) {
     return ERROR_CONTEXT_FAILURE;
   }
+  if (((uint64_t)aligned_addr) < 8) {
+    return ERROR_CONTEXT_FAILURE;
+  }
+
   if (dep_cell_hash == 0 || aligned_size == 0 || aligned_addr == 0 ||
       handle == 0 || consumed_size == 0) {
     return ERROR_INVALID_ARGS;
@@ -226,7 +248,13 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         uint64_t filesz = ph->p_filesz;
         uint64_t memsz = ph->p_memsz;
         uint64_t size = 0;
-        if (__builtin_uaddl_overflow(ph->p_vaddr, filesz, &size)) {
+        uint64_t gap_len = 0;
+        if (filesz > memsz) {
+          return ERROR_INVALID_ELF;
+        }
+        gap_len = memsz - filesz;
+
+        if (__builtin_uaddl_overflow(ph->p_vaddr, memsz, &size)) {
           return ERROR_INVALID_ELF;
         }
         uint64_t consumed_end = 0;
@@ -241,13 +269,24 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (addr2 == 0) {
           return ERROR_INVALID_ELF;
         }
-        ret = ckb_load_cell_data(addr2, &memsz, ph->p_offset, index,
+        uint64_t read_len = filesz;
+        ret = ckb_load_cell_data(addr2, &read_len, ph->p_offset, index,
                                  CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
         }
-        if (memsz < ph->p_filesz) {
+        if (read_len < filesz) {
           return ERROR_INVALID_ELF;
+        }
+        if (gap_len > 0) {
+          uint8_t *addr3 = addr_offset_with_context(addr2, filesz, context);
+          uint8_t *addr4 =
+              addr_offset_with_context(addr3, gap_len - 1, context);
+          if (addr3 != 0 && addr4 != 0) {
+            memset(addr3, 0, gap_len);
+          } else {
+            return ERROR_INVALID_ELF;
+          }
         }
         max_consumed_size = MAX(max_consumed_size, consumed_end);
       }
@@ -267,7 +306,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
   if (len < sizeof(Elf64_Shdr) * header.e_shnum) {
     return ERROR_INVALID_ELF;
   }
-  if (header.e_shstrndx >= 32) {
+  if (header.e_shstrndx >= 32 || header.e_shstrndx >= header.e_shnum) {
     return ERROR_INVALID_ELF;
   }
   /*
@@ -337,9 +376,16 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
       }
       context->dynsyms = (Elf64_Sym *)addr2;
       context->dynsym_size = sh->sh_size / sh->sh_entsize;
+
+      uint8_t* addr3 = addr_offset_with_context(addr2, sh->sh_size, context);
+      if (addr3 == 0) {
+        return ERROR_INVALID_ELF;
+      }
     } else if (sh->sh_type == SHT_STRTAB) {
       static char DYNSTR[] = ".dynstr";
-      if (sh->sh_name < (4096 - sizeof(DYNSTR))) {
+      if (sh->sh_name < (4096 - sizeof(DYNSTR)) &&
+          shshrtab->sh_size >= sizeof(DYNSTR) &&
+          sh->sh_name < (shshrtab->sh_size - sizeof(DYNSTR))) {
         const char *current_str = shrtab + sh->sh_name;
         if (strcmp(DYNSTR, current_str) == 0) {
           const uint8_t *addr2 =
@@ -361,17 +407,34 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
 }
 
 void *ckb_dlsym(void *handle, const char *symbol) {
+  if (handle == NULL || symbol == NULL) {
+    return NULL;
+  }
   CkbDlfcnContext *context = (CkbDlfcnContext *)handle;
+
+  if (context->base_addr == NULL || context->size == 0 ||
+      context->dynstr == NULL || context->dynsym_size == 0 ||
+      context->dynsyms == NULL) {
+    return NULL;
+  }
+  if (!check_in_range(context->dynstr, context)) {
+    return NULL;
+  }
+  uint64_t _end = 0;
+  if (__builtin_uaddl_overflow((uint64_t)context->base_addr, context->size,
+                               &_end)) {
+    return NULL;
+  }
 
   for (uint64_t i = 0; i < context->dynsym_size; i++) {
     Elf64_Sym *sym = &context->dynsyms[i];
-    const char *str = context->dynstr + sym->st_name;
-    if (!check_in_range(str, context)) {
-      return 0;
-    }
+    const char *str = addr_offset_with_context(context->dynstr, sym->st_name, context);
+    if (str == 0)
+      return NULL;
     if (strcmp(str, symbol) == 0) {
-      void *p = (void *)(context->base_addr + sym->st_value);
-      if (!check_in_range(p, context)) {
+      void *p = addr_offset_with_context(context->base_addr, sym->st_value, context);
+      void *p_end = addr_offset_with_context(p, strlen(symbol), context);
+      if (p == 0 || p_end == 0) {
         return 0;
       } else {
         return p;
