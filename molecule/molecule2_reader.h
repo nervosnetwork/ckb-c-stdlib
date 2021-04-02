@@ -348,6 +348,7 @@ mol2_num_t mol2_dynvec_length(const mol2_cursor_t *input) {
   } else {
     mol2_cursor_t cur = *input;
     mol2_add_offset(&cur, MOL2_NUM_T_SIZE);
+    mol2_sub_size(&cur, MOL2_NUM_T_SIZE);
     mol2_validate(&cur);
     // return (mol2_unpack_number(&cur) / 4) - 1;
     return mol2_get_item_count(&cur);
