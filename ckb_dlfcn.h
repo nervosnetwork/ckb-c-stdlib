@@ -433,8 +433,8 @@ void *ckb_dlsym(void *handle, const char *symbol) {
       return NULL;
     if (strcmp(str, symbol) == 0) {
       void *p = addr_offset_with_context(context->base_addr, sym->st_value, context);
-      void *p_end = addr_offset_with_context(p, strlen(symbol), context);
-      if (p == 0 || p_end == 0) {
+      void *str_end = addr_offset_with_context(str, strlen(symbol), context);
+      if (p == 0 || str_end == 0) {
         return 0;
       } else {
         return p;
