@@ -110,10 +110,11 @@ int check_in_range(const void *p, const CkbDlfcnContext *context) {
   uint64_t end;
 
   void *begin = context->base_addr;
-  if (__builtin_uaddl_overflow((uint64_t)context->base_addr, context->size, &end)) {
+  if (__builtin_uaddl_overflow((uint64_t)context->base_addr, context->size,
+                               &end)) {
     return 0;
   }
-  if (begin <= p && p < (void*)end) {
+  if (begin <= p && p < (void *)end) {
     return 1;
   } else {
     return 0;
@@ -144,7 +145,7 @@ uint8_t *addr_offset_checked(uint8_t *aligned_addr, uint64_t aligned_size,
 }
 
 void *addr_offset_with_context(const void *addr, uint64_t offset,
-                                  const CkbDlfcnContext *context) {
+                               const CkbDlfcnContext *context) {
   uint64_t target = 0;
   if (__builtin_uaddl_overflow((uint64_t)addr, offset, &target)) {
     return 0;
@@ -377,7 +378,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
       context->dynsyms = (Elf64_Sym *)addr2;
       context->dynsym_size = sh->sh_size / sh->sh_entsize;
 
-      uint8_t* addr3 = addr_offset_with_context(addr2, sh->sh_size, context);
+      uint8_t *addr3 = addr_offset_with_context(addr2, sh->sh_size, context);
       if (addr3 == 0) {
         return ERROR_INVALID_ELF;
       }
@@ -428,11 +429,12 @@ void *ckb_dlsym(void *handle, const char *symbol) {
 
   for (uint64_t i = 0; i < context->dynsym_size; i++) {
     Elf64_Sym *sym = &context->dynsyms[i];
-    const char *str = addr_offset_with_context(context->dynstr, sym->st_name, context);
-    if (str == 0)
-      return NULL;
+    const char *str =
+        addr_offset_with_context(context->dynstr, sym->st_name, context);
+    if (str == 0) return NULL;
     if (strcmp(str, symbol) == 0) {
-      void *p = addr_offset_with_context(context->base_addr, sym->st_value, context);
+      void *p =
+          addr_offset_with_context(context->base_addr, sym->st_value, context);
       void *str_end = addr_offset_with_context(str, strlen(symbol), context);
       if (p == 0 || str_end == 0) {
         return 0;
