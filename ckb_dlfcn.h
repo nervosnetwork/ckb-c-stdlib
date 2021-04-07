@@ -431,12 +431,13 @@ void *ckb_dlsym(void *handle, const char *symbol) {
     Elf64_Sym *sym = &context->dynsyms[i];
     const char *str =
         addr_offset_with_context(context->dynstr, sym->st_name, context);
-    if (str == 0) return NULL;
+    const void *str_end =
+        addr_offset_with_context(str, strlen(symbol), context);
+    if ((str == 0) || (str_end == 0)) return NULL;
     if (strcmp(str, symbol) == 0) {
       void *p =
           addr_offset_with_context(context->base_addr, sym->st_value, context);
-      void *str_end = addr_offset_with_context(str, strlen(symbol), context);
-      if (p == 0 || str_end == 0) {
+      if (p == 0) {
         return 0;
       } else {
         return p;
