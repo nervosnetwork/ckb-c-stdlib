@@ -8,6 +8,8 @@
 #include "ckb_consts.h"
 #include "ckb_syscall_apis.h"
 
+#define SCRIPT_SIZE 32768
+
 int ckb_checked_load_tx_hash(void* addr, uint64_t* len, size_t offset) {
   uint64_t old_len = *len;
   int ret = ckb_load_tx_hash(addr, len, offset);

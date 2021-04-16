@@ -25,14 +25,14 @@ int ckb_load_type_id_from_script_args(size_t offset, uint8_t type_id[32]);
 int ckb_load_type_id_from_script_args(size_t offset, uint8_t type_id[32]) {
   // TODO: it is possible to simply load the script header, then only load the
   // 32 byte requested data based on offsets.
-  uint8_t current_script[32768];
-  uint64_t len = 32768;
+  uint8_t current_script[SCRIPT_SIZE];
+  uint64_t len = SCRIPT_SIZE;
   int ret = ckb_load_script(current_script, &len, 0);
   if (ret != CKB_SUCCESS) {
     DEBUG("Cannot load current script!");
     return CKB_INVALID_DATA;
   }
-  if (len > 32768) {
+  if (len > SCRIPT_SIZE) {
     DEBUG("Current script is too large!");
     return CKB_INVALID_DATA;
   }
