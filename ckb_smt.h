@@ -20,7 +20,7 @@ enum SMTErrorCode {
 typedef struct {
   uint8_t key[SMT_KEY_BYTES];
   uint8_t value[SMT_VALUE_BYTES];
-  uint8_t order;
+  uint32_t order;
 } smt_pair_t;
 
 typedef struct {
@@ -82,7 +82,7 @@ int _smt_pair_cmp(const void *a, const void *b) {
       return cmp_result;
     }
   }
-  return pa->order - pb->order;
+  return pb->order - pa->order;
 }
 
 void smt_state_normalize(smt_state_t *state) {
