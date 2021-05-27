@@ -359,6 +359,17 @@ int ckb_debug(const char* s) {
   return syscall(SYS_ckb_debug, s, 0, 0, 0, 0, 0);
 }
 
+int ckb_vm_version() { return syscall(SYS_ckb_vm_version, 0, 0, 0, 0, 0, 0); }
+
+uint64_t ckb_current_cycles() {
+  return syscall(SYS_ckb_current_cycles, 0, 0, 0, 0, 0, 0);
+}
+
+int ckb_exec(size_t index, size_t source, size_t place, size_t bounds, int argc,
+             char* argv[]) {
+  return syscall(SYS_ckb_exec, index, source, place, bounds, argc, argv);
+}
+
 #endif /* CKB_STDLIB_NO_SYSCALL_IMPL */
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALLS_H_ */
