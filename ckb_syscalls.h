@@ -216,6 +216,15 @@ int ckb_look_for_dep_with_hash(const uint8_t* data_hash, size_t* index) {
   return ckb_look_for_dep_with_hash2(data_hash, 0, index);
 }
 
+int ckb_exec_dep(const uint8_t* dep_cell_hash, uint8_t hash_type) {
+  size_t index = SIZE_MAX;
+  int ret = ckb_look_for_dep_with_hash2(dep_cell_hash, hash_type, &index);
+  if (ret != CKB_SUCCESS) {
+    return ret;
+  }
+  return ckb_exec(index, CKB_SOURCE_CELL_DEP, 0, 0, 0, 0);
+}
+
 #ifndef CKB_STDLIB_NO_SYSCALL_IMPL
 
 #define memory_barrier() asm volatile("fence" ::: "memory")
