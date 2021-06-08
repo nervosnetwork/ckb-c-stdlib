@@ -180,8 +180,8 @@ int ckb_calculate_inputs_len() {
 }
 
 /*
- * Look for dep cell with specific data hash, data_hash should a buffer with
- * 32 bytes.
+ * Look for a dep cell with specific code hash, code_hash should be a buffer
+ * with 32 bytes.
  */
 int ckb_look_for_dep_with_hash2(const uint8_t* code_hash, uint8_t hash_type,
                                 size_t* index) {
