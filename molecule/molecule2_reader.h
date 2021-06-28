@@ -149,15 +149,15 @@ typedef struct mol2_data_source_t {
   // it's normally same as MAX_CACHE_SIZE.
   // modify it for testing purpose
   uint32_t max_cache_size;
-  // variable length structure, MIN_CACHE_SIZE is just a placeholder.
-  // it's true length is calculated by "mol2_cal_data_source_length".
-  uint8_t cache[MIN_CACHE_SIZE];
+  // variable length structure
+  // it's true length is calculated by "MOL2_DATA_SOURCE_LEN".
+  uint8_t cache[];
 } mol2_data_source_t;
 
 #define MOL2_DATA_SOURCE_LEN(cache_size) \
-  (sizeof(mol2_data_source_t) + (cache_size)-MIN_CACHE_SIZE)
-#define DEFAULT_DATA_SOURCE_LENGTH \
-  (sizeof(mol2_data_source_t) + MAX_CACHE_SIZE - MIN_CACHE_SIZE)
+  (sizeof(mol2_data_source_t) + (cache_size))
+
+#define DEFAULT_DATA_SOURCE_LENGTH (sizeof(mol2_data_source_t) + MAX_CACHE_SIZE)
 
 /**
  * --------------- MUST READ ----------------------
