@@ -1,8 +1,12 @@
+//
+// C implementation of SMT verification:
+// https://github.com/nervosnetwork/sparse-merkle-tree
+//
+// origin from:
+// https://github.com/nervosnetwork/godwoken/blob/6c9b92b9b06068a8678864b35a3272545ed7909e/c/gw_smt.h#L1
 #ifndef _CKB_SPARSE_MERKLE_TREE_H_
 #define _CKB_SPARSE_MERKLE_TREE_H_
 
-// origin from:
-// https://github.com/nervosnetwork/godwoken/blob/6c9b92b9b06068a8678864b35a3272545ed7909e/c/gw_smt.h#L1
 #define _SMT_STACK_SIZE 32
 #define SMT_KEY_BYTES 32
 #define SMT_VALUE_BYTES 32
@@ -163,7 +167,7 @@ int _smt_zero_value(const uint8_t *value) {
 void _smt_merge(uint8_t height, const uint8_t *node_key, const uint8_t *lhs,
                 const uint8_t *rhs, uint8_t *output) {
   if (_smt_zero_value(lhs) && _smt_zero_value(rhs)) {
-    _smt_zero_value(output);
+    memcpy(output, SMT_ZERO, SMT_VALUE_BYTES);
   } else {
     blake2b_state blake2b_ctx;
     blake2b_init(&blake2b_ctx, 32);
@@ -273,7 +277,7 @@ int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
           _smt_merge(height_a, parent_key, value_a, value_b, value_a);
         }
         // push key
-        _smt_parent_path(key_a, height_a);
+        memcpy(key_a, parent_key, SMT_KEY_BYTES);
         // push height
         *height_a_ptr = height_a + 1;
         stack_top++;
@@ -308,7 +312,11 @@ int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
           if (height_u16 > 255) {
             return ERROR_INVALID_PROOF;
           }
-          memcpy(parent_key, key, SMT_KEY_BYTES);
+          // the following code can be omitted:
+          // memcpy(parent_key, key, SMT_KEY_BYTES);
+          // A key's parent's parent can be calculated from parent.
+          // it's not needed to do it from scratch.
+          // Make sure height_u16 is in increase order
           _smt_parent_path(parent_key, (uint8_t)height_u16);
           // push value
           if (_smt_get_bit(key, (uint8_t)height_u16)) {
