@@ -7,6 +7,8 @@
 #define SMT_KEY_BYTES 32
 #define SMT_VALUE_BYTES 32
 
+const uint8_t SMT_ZERO[SMT_VALUE_BYTES] = {0};
+
 enum SMTErrorCode {
   // SMT
   ERROR_INSUFFICIENT_CAPACITY = 80,
@@ -158,16 +160,19 @@ int _smt_zero_value(const uint8_t *value) {
 }
 
 /* Notice that output might collide with one of lhs, or rhs */
-void _smt_merge(const uint8_t *lhs, const uint8_t *rhs, uint8_t *output) {
-  if (_smt_zero_value(lhs)) {
-    memcpy(output, rhs, 32);
-  } else if (_smt_zero_value(rhs)) {
-    memcpy(output, lhs, 32);
+void _smt_merge(uint8_t height, const uint8_t *node_key, const uint8_t *lhs,
+                const uint8_t *rhs, uint8_t *output) {
+  if (_smt_zero_value(lhs) && _smt_zero_value(rhs)) {
+    _smt_zero_value(output);
   } else {
     blake2b_state blake2b_ctx;
     blake2b_init(&blake2b_ctx, 32);
+
+    blake2b_update(&blake2b_ctx, &height, 1);
+    blake2b_update(&blake2b_ctx, node_key, 32);
     blake2b_update(&blake2b_ctx, lhs, 32);
     blake2b_update(&blake2b_ctx, rhs, 32);
+
     blake2b_final(&blake2b_ctx, output, 32);
   }
 }
@@ -179,16 +184,17 @@ void _smt_merge(const uint8_t *lhs, const uint8_t *rhs, uint8_t *output) {
  */
 int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
                        const uint8_t *proof, uint32_t proof_length) {
-  blake2b_state blake2b_ctx;
   uint8_t stack_keys[_SMT_STACK_SIZE][SMT_KEY_BYTES];
-  uint8_t stack_values[_SMT_STACK_SIZE][32];
+  uint8_t stack_values[_SMT_STACK_SIZE][SMT_VALUE_BYTES];
+  uint16_t stack_heights[_SMT_STACK_SIZE] = {0};
+
   uint32_t proof_index = 0;
   uint32_t leave_index = 0;
   uint32_t stack_top = 0;
 
   while (proof_index < proof_length) {
     switch (proof[proof_index++]) {
-      case 0x4C:
+      case 0x4C: {
         if (stack_top >= _SMT_STACK_SIZE) {
           return ERROR_INVALID_STACK;
         }
@@ -197,37 +203,42 @@ int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
         }
         memcpy(stack_keys[stack_top], pairs->pairs[leave_index].key,
                SMT_KEY_BYTES);
-        if (_smt_zero_value(pairs->pairs[leave_index].value)) {
-          memset(stack_values[stack_top], 0, 32);
-        } else {
-          blake2b_init(&blake2b_ctx, 32);
-          blake2b_update(&blake2b_ctx, pairs->pairs[leave_index].key,
-                         SMT_KEY_BYTES);
-          blake2b_update(&blake2b_ctx, pairs->pairs[leave_index].value,
-                         SMT_KEY_BYTES);
-          blake2b_final(&blake2b_ctx, stack_values[stack_top], 32);
-        }
+        memcpy(stack_values[stack_top], pairs->pairs[leave_index].value,
+               SMT_VALUE_BYTES);
+        stack_heights[stack_top] = 0;
         stack_top++;
         leave_index++;
-        break;
+      } break;
       case 0x50: {
         if (stack_top == 0) {
           return ERROR_INVALID_STACK;
         }
-        if (proof_index + 33 > proof_length) {
+        if (proof_index + 32 > proof_length) {
           return ERROR_INVALID_PROOF;
         }
-        uint8_t height = proof[proof_index++];
-        const uint8_t *current_proof = &proof[proof_index];
+        const uint8_t *sibling_node = &proof[proof_index];
         proof_index += 32;
         uint8_t *key = stack_keys[stack_top - 1];
         uint8_t *value = stack_values[stack_top - 1];
-        if (_smt_get_bit(key, height)) {
-          _smt_merge(current_proof, value, value);
-        } else {
-          _smt_merge(value, current_proof, value);
+        uint16_t height = stack_heights[stack_top - 1];
+        uint16_t *height_ptr = &stack_heights[stack_top - 1];
+        if (height > 255) {
+          return ERROR_INVALID_PROOF;
         }
+        uint8_t parent_key[SMT_KEY_BYTES];
+        memcpy(parent_key, key, SMT_KEY_BYTES);
+        _smt_parent_path(parent_key, height);
+
+        // push value
+        if (_smt_get_bit(key, height)) {
+          _smt_merge((uint8_t)height, parent_key, sibling_node, value, value);
+        } else {
+          _smt_merge((uint8_t)height, parent_key, value, sibling_node, value);
+        }
+        // push key
         _smt_parent_path(key, height);
+        // push height
+        *height_ptr = height + 1;
       } break;
       case 0x48: {
         if (stack_top < 2) {
@@ -236,43 +247,96 @@ int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
         if (proof_index >= proof_length) {
           return ERROR_INVALID_PROOF;
         }
-        uint8_t height = proof[proof_index++];
+        uint16_t *height_a_ptr = &stack_heights[stack_top - 2];
+
+        uint16_t height_a = stack_heights[stack_top - 2];
         uint8_t *key_a = stack_keys[stack_top - 2];
         uint8_t *value_a = stack_values[stack_top - 2];
-        uint8_t *key_b = stack_keys[stack_top - 1];
+
+        uint16_t height_b = stack_heights[stack_top - 1];
         uint8_t *value_b = stack_values[stack_top - 1];
         stack_top -= 2;
-        int a_set = _smt_get_bit(key_a, height);
-        int b_set = _smt_get_bit(key_b, height);
-        _smt_copy_bits(key_a, height);
-        _smt_copy_bits(key_b, height);
-        uint8_t sibling_key_a[32];
-        memcpy(sibling_key_a, key_a, 32);
-        if (!a_set) {
-          _smt_set_bit(sibling_key_a, height);
+        if (height_a != height_b) {
+          return ERROR_INVALID_PROOF;
         }
-        if (memcmp(sibling_key_a, key_b, 32) != 0 || (a_set == b_set)) {
-          return ERROR_INVALID_SIBLING;
+        if (height_a > 255) {
+          return ERROR_INVALID_PROOF;
         }
-        if (a_set) {
-          _smt_merge(value_b, value_a, value_a);
+        uint8_t parent_key[SMT_KEY_BYTES];
+        memcpy(parent_key, key_a, SMT_KEY_BYTES);
+        _smt_parent_path(parent_key, (uint8_t)height_a);
+
+        // push value
+        if (_smt_get_bit(key_a, height_a)) {
+          _smt_merge(height_a, parent_key, value_b, value_a, value_a);
         } else {
-          _smt_merge(value_a, value_b, value_a);
+          _smt_merge(height_a, parent_key, value_a, value_b, value_a);
         }
-        /* Top-of-stack key is already updated to parent_key_a */
+        // push key
+        _smt_parent_path(key_a, height_a);
+        // push height
+        *height_a_ptr = height_a + 1;
         stack_top++;
+      } break;
+      case 0x4F: {
+        if (stack_top < 1) {
+          return ERROR_INVALID_STACK;
+        }
+        if (proof_index >= proof_length) {
+          return ERROR_INVALID_PROOF;
+        }
+        uint16_t n = proof[proof_index];
+        proof_index++;
+        uint16_t zero_count = 0;
+        if (n == 0) {
+          zero_count = 256;
+        } else {
+          zero_count = n;
+        }
+        uint16_t *base_height_ptr = &stack_heights[stack_top - 1];
+        uint16_t base_height = stack_heights[stack_top - 1];
+        uint8_t *key = stack_keys[stack_top - 1];
+        uint8_t *value = stack_values[stack_top - 1];
+        if (base_height > 255) {
+          return ERROR_INVALID_PROOF;
+        }
+        uint8_t parent_key[SMT_KEY_BYTES];
+        memcpy(parent_key, key, SMT_KEY_BYTES);
+        uint16_t height_u16 = base_height;
+        for (uint16_t idx = 0; idx < zero_count; idx++) {
+          height_u16 = base_height + idx;
+          if (height_u16 > 255) {
+            return ERROR_INVALID_PROOF;
+          }
+          memcpy(parent_key, key, SMT_KEY_BYTES);
+          _smt_parent_path(parent_key, (uint8_t)height_u16);
+          // push value
+          if (_smt_get_bit(key, (uint8_t)height_u16)) {
+            _smt_merge((uint8_t)height_u16, parent_key, SMT_ZERO, value, value);
+          } else {
+            _smt_merge((uint8_t)height_u16, parent_key, value, SMT_ZERO, value);
+          }
+        }
+        // push key
+        memcpy(key, parent_key, SMT_KEY_BYTES);
+        // push height
+        *base_height_ptr = height_u16 + 1;
       } break;
       default:
         return ERROR_INVALID_PROOF;
     }
   }
+  if (stack_top != 1) {
+    return ERROR_INVALID_STACK;
+  }
+  if (stack_heights[0] != 256) {
+    return ERROR_INVALID_PROOF;
+  }
   /* All leaves must be used */
   if (leave_index != pairs->len) {
     return ERROR_INVALID_PROOF;
   }
-  if (stack_top != 1) {
-    return ERROR_INVALID_STACK;
-  }
+
   memcpy(buffer, stack_values[0], 32);
   return 0;
 }
