@@ -7,7 +7,11 @@
 #ifndef _CKB_SPARSE_MERKLE_TREE_H_
 #define _CKB_SPARSE_MERKLE_TREE_H_
 
-#define _SMT_STACK_SIZE 32
+// users can define a new stack size if needed
+#ifndef SMT_STACK_SIZE
+#define SMT_STACK_SIZE 257
+#endif
+
 #define SMT_KEY_BYTES 32
 #define SMT_VALUE_BYTES 32
 
@@ -188,9 +192,9 @@ void _smt_merge(uint8_t height, const uint8_t *node_key, const uint8_t *lhs,
  */
 int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
                        const uint8_t *proof, uint32_t proof_length) {
-  uint8_t stack_keys[_SMT_STACK_SIZE][SMT_KEY_BYTES];
-  uint8_t stack_values[_SMT_STACK_SIZE][SMT_VALUE_BYTES];
-  uint16_t stack_heights[_SMT_STACK_SIZE] = {0};
+  uint8_t stack_keys[SMT_STACK_SIZE][SMT_KEY_BYTES];
+  uint8_t stack_values[SMT_STACK_SIZE][SMT_VALUE_BYTES];
+  uint16_t stack_heights[SMT_STACK_SIZE] = {0};
 
   uint32_t proof_index = 0;
   uint32_t leave_index = 0;
@@ -199,7 +203,7 @@ int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
   while (proof_index < proof_length) {
     switch (proof[proof_index++]) {
       case 0x4C: {
-        if (stack_top >= _SMT_STACK_SIZE) {
+        if (stack_top >= SMT_STACK_SIZE) {
           return ERROR_INVALID_STACK;
         }
         if (leave_index >= pairs->len) {
@@ -258,6 +262,7 @@ int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
         uint8_t *value_a = stack_values[stack_top - 2];
 
         uint16_t height_b = stack_heights[stack_top - 1];
+        uint8_t *key_b = stack_keys[stack_top - 1];
         uint8_t *value_b = stack_values[stack_top - 1];
         stack_top -= 2;
         if (height_a != height_b) {
@@ -270,6 +275,11 @@ int smt_calculate_root(uint8_t *buffer, const smt_state_t *pairs,
         memcpy(parent_key, key_a, SMT_KEY_BYTES);
         _smt_parent_path(parent_key, (uint8_t)height_a);
 
+        // 2 keys should have same parent keys
+        _smt_parent_path(key_b, (uint8_t)height_b);
+        if (memcmp(parent_key, key_b, SMT_KEY_BYTES) != 0) {
+          return ERROR_INVALID_PROOF;
+        }
         // push value
         if (_smt_get_bit(key_a, height_a)) {
           _smt_merge(height_a, parent_key, value_b, value_a, value_a);
