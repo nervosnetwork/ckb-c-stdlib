@@ -46,6 +46,14 @@
  * compiling.
  */
 int printf(const char* format, ...);
+/*
+ * This function uses `ckb_debug` syscall to output formatted messages.
+ *
+ * Pass `-D CKB_C_STDLIB_PRINTF` flag to GCC to enable ckb_printf;
+ * If the flag is undefined the ckb_printf will be compiled as an empty
+ * function.
+ */
+int ckb_printf(const char* format, ...);
 int ckb_debug(const char* s);
 
 #endif /* CKB_C_STDLIB_STDIO_H_ */

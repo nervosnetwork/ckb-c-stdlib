@@ -1204,10 +1204,20 @@ int printf(const char *format, ...) {
   ckb_debug(buf);
   return ret;
 }
+int ckb_printf(const char *format, ...) {
+  static char buf[CKB_C_STDLIB_PRINTF_BUFFER_SIZE];
+  va_list va;
+  va_start(va, format);
+  int ret = vsnprintf_(buf, CKB_C_STDLIB_PRINTF_BUFFER_SIZE, format, va);
+  va_end(va);
+  ckb_debug(buf);
+  return ret;
+}
 
 #else
 
 int printf(const char *format, ...) { return 0; }
+int ckb_printf(const char *format, ...) { return 0; }
 
 #endif /* CKB_C_STDLIB_PRINTF */
 
