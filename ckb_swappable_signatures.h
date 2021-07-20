@@ -16,7 +16,7 @@ typedef struct {
   uint8_t *code_buffer;
   uint64_t code_buffer_size;
   uint8_t *prefilled_data_buffer;
-  uint64_t prefilled_buffer_size;
+  size_t prefilled_buffer_size;
   verify_function verify_func;
 } CkbSwappableSignatureInstance;
 
@@ -24,7 +24,7 @@ int ckb_initialize_swappable_signature(
     const uint8_t *code_hash, uint8_t hash_type,
     CkbSwappableSignatureInstance *instance) {
   void *handle = NULL;
-  uint64_t consumed_size = 0;
+  size_t consumed_size = 0;
   int ret = ckb_dlopen2(code_hash, hash_type, instance->code_buffer,
                         instance->code_buffer_size, &handle, &consumed_size);
   if (ret != CKB_SUCCESS) {

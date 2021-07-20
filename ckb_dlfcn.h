@@ -89,8 +89,14 @@ typedef struct {
 } Elf64_Rela;
 
 #define RISCV_PGSIZE 4096
+
+#ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
+#ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
 
 #define ERROR_CONTEXT_FAILURE -21
 #define ERROR_INVALID_ELF -22
