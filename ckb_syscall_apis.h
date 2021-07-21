@@ -34,8 +34,8 @@ int ckb_load_cell_data(void* addr, uint64_t* len, size_t offset, size_t index,
                        size_t source);
 int ckb_vm_version();
 uint64_t ckb_current_cycles();
-int ckb_exec(size_t index, size_t source, size_t place, size_t bounds, int argc,
-             char* argv[]);
+int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, size_t offset,
+                  size_t length, int argc, const char* argv[]);
 
 int ckb_dlopen2(const uint8_t* dep_cell_hash, uint8_t hash_type,
                 uint8_t* aligned_addr, size_t aligned_size, void** handle,
