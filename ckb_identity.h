@@ -14,6 +14,8 @@
 #define BLAKE160_SIZE 20
 #define SECP256K1_SIGNATURE_SIZE 65
 #define SECP256K1_MESSAGE_SIZE 32
+#define MAX_PREIMAGE_SIZE 1024
+#define MAX_CODE_SIZE (1024 * 400)
 
 enum CkbIdentityErrorCode {
   ERROR_IDENTITY_ARGUMENTS_LEN = -1,
@@ -28,6 +30,7 @@ enum CkbIdentityErrorCode {
   // new error code
   ERROR_IDENTITY_LOCK_SCRIPT_HASH_NOT_FOUND = 70,
   ERROR_IDENTITY_WRONG_ARGS,
+  ERROR_INVALID_PREIMAGE,
 };
 
 typedef struct CkbIdentityType {
@@ -38,8 +41,16 @@ typedef struct CkbIdentityType {
 
 enum IdentityFlagsType {
   IdentityFlagsPubkeyHash = 0,
-  IdentityFlagsOwnerLock = 1,
-  IdentityFlagsAcp = 2,
+  // values 1~5 are used by pw-lock
+  IdentityFlagsEthereum = 1,
+  IdentityFlagsEos = 2,
+  IdentityFlagsTron = 3,
+  IdentityFlagsBitcoin = 4,
+  IdentityFlagsDogecoin = 5,
+
+  IdentityFlagsOwnerLock = 0xFC,
+  IdentityFlagsExec = 0xFD,
+  IdentityFlagsDl = 0xFE,
 };
 
 typedef int (*validate_signature_t)(void *prefilled_data, const uint8_t *sig,
@@ -280,12 +291,41 @@ bool is_lock_script_hash_present(uint8_t *lock_script_hash) {
   return false;
 }
 
-int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len) {
+int verify_via_dl(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
+                  uint8_t *preimage, uint32_t preimage_len,
+                  CkbSwappableSignatureInstance *inst) {
+  int err = 0;
+  uint8_t hash[BLAKE2B_BLOCK_SIZE];
+
+  // code hash: 32 bytes
+  // hash type: 1 byte
+  // pubkey hash: 20 bytes
+  if (preimage_len != (32 + 1 + 20)) return ERROR_INVALID_PREIMAGE;
+
+  blake2b_state ctx;
+  blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
+  blake2b_update(&ctx, preimage, preimage_len);
+  blake2b_final(&ctx, hash, BLAKE2B_BLOCK_SIZE);
+  if (memcmp(hash, id->blake160, BLAKE160_SIZE) != 0)
+    return ERROR_INVALID_PREIMAGE;
+
+  uint8_t *code_hash = preimage;
+  uint8_t hash_type = *(preimage + 32);
+  uint8_t *pubkey_hash = preimage + 32 + 1;
+
+  err = ckb_initialize_swappable_signature(code_hash, hash_type, inst);
+  if (err != 0) return err;
+
+  return verify_sighash_all(pubkey_hash, sig, sig_len, inst->verify_func);
+}
+
+int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
+                        uint8_t *preimage, uint32_t preimage_size) {
   if (id->flags == IdentityFlagsPubkeyHash) {
-    if (sig == NULL || sig_len != SECP256K1_SIGNATURE_SIZE) {
+    if (sig == NULL || sig_size != SECP256K1_SIGNATURE_SIZE) {
       return ERROR_IDENTITY_WRONG_ARGS;
     }
-    return verify_sighash_all(id->blake160, sig, sig_len,
+    return verify_sighash_all(id->blake160, sig, sig_size,
                               validate_signature_secp256k1);
   } else if (id->flags == IdentityFlagsOwnerLock) {
     if (is_lock_script_hash_present(id->blake160)) {
@@ -293,8 +333,20 @@ int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len) {
     } else {
       return ERROR_IDENTITY_LOCK_SCRIPT_HASH_NOT_FOUND;
     }
-  } else {
-    return CKB_INVALID_DATA;
+  } else if (id->flags == IdentityFlagsDl) {
+    uint8_t code_buffer[MAX_CODE_SIZE];
+    CkbSwappableSignatureInstance swappable_inst = {
+        .code_buffer = code_buffer,
+        .code_buffer_size = MAX_CODE_SIZE,
+        .prefilled_data_buffer = NULL,
+        .prefilled_buffer_size = 0,
+        .verify_func = NULL};
+    return verify_via_dl(id, sig, sig_size, preimage, preimage_size,
+                         &swappable_inst);
+  } else if (id->flags == IdentityFlagsExec) {
+    // TODO
   }
+  return CKB_INVALID_DATA;
 }
+
 #endif
