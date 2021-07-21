@@ -365,14 +365,14 @@ uint64_t ckb_current_cycles() {
   return syscall(SYS_ckb_current_cycles, 0, 0, 0, 0, 0, 0);
 }
 
-int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, size_t offset,
-                  size_t length, int argc, const char* argv[]) {
+int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
+                  uint32_t length, int argc, const char* argv[]) {
   size_t index = SIZE_MAX;
   int ret = ckb_look_for_dep_with_hash2(code_hash, hash_type, &index);
   if (ret != CKB_SUCCESS) {
     return ret;
   }
-  uint64_t bounds = (offset << 32) | length;
+  size_t bounds = ((size_t)offset << 32) | length;
   return syscall(SYS_ckb_exec, index, CKB_SOURCE_CELL_DEP, 0, bounds, argc,
                  argv);
 }
