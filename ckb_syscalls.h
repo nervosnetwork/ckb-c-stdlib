@@ -359,6 +359,24 @@ int ckb_debug(const char* s) {
   return syscall(SYS_ckb_debug, s, 0, 0, 0, 0, 0);
 }
 
+int ckb_vm_version() { return syscall(SYS_ckb_vm_version, 0, 0, 0, 0, 0, 0); }
+
+uint64_t ckb_current_cycles() {
+  return syscall(SYS_ckb_current_cycles, 0, 0, 0, 0, 0, 0);
+}
+
+int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
+                  uint32_t length, int argc, const char* argv[]) {
+  size_t index = SIZE_MAX;
+  int ret = ckb_look_for_dep_with_hash2(code_hash, hash_type, &index);
+  if (ret != CKB_SUCCESS) {
+    return ret;
+  }
+  size_t bounds = ((size_t)offset << 32) | length;
+  return syscall(SYS_ckb_exec, index, CKB_SOURCE_CELL_DEP, 0, bounds, argc,
+                 argv);
+}
+
 #endif /* CKB_STDLIB_NO_SYSCALL_IMPL */
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALLS_H_ */
