@@ -2,6 +2,7 @@
 #define CKB_C_STDLIB_CKB_IDENTITY_H_
 
 #include <blake2b.h>
+#include <ckb_exec.h>
 
 #include "ckb_consts.h"
 
