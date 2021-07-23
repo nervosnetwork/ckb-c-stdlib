@@ -335,7 +335,7 @@ int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
       return ERROR_IDENTITY_LOCK_SCRIPT_HASH_NOT_FOUND;
     }
   } else if (id->flags == IdentityFlagsDl) {
-    uint8_t code_buffer[MAX_CODE_SIZE];
+    uint8_t code_buffer[MAX_CODE_SIZE]  __attribute__((aligned(RISCV_PGSIZE)));;
     CkbSwappableSignatureInstance swappable_inst = {
         .code_buffer = code_buffer,
         .code_buffer_size = MAX_CODE_SIZE,
