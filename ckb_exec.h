@@ -56,7 +56,6 @@ static void _exec_gethex(uint8_t x, char* out) {
 int _exec_safe_strlen(const char* s, uint32_t limit, uint32_t* length) {
   if (s == NULL) return ERROR_EXEC_OUT_OF_BOUNDS;
 
-  const char* a = s;
   uint32_t count = 0;
   for (; *s; s++) {
     count++;
