@@ -36,12 +36,13 @@ enum CkbIdentityErrorCode {
 
 typedef struct CkbIdentityType {
   uint8_t flags;
-  // blake160 (20 bytes) hash of lock script or pubkey
-  uint8_t blake160[20];
+  // unique id, it can be: blake160 (20 bytes) hash of lock script, pubkey or
+  // preimage
+  uint8_t id[20];
 } CkbIdentityType;
 
 enum IdentityFlagsType {
-  IdentityFlagsPubkeyHash = 0,
+  IdentityFlagsCkb = 0,
   // values 1~5 are used by pw-lock
   IdentityFlagsEthereum = 1,
   IdentityFlagsEos = 2,
@@ -307,8 +308,7 @@ int verify_via_dl(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
   blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
   blake2b_update(&ctx, preimage, preimage_len);
   blake2b_final(&ctx, hash, BLAKE2B_BLOCK_SIZE);
-  if (memcmp(hash, id->blake160, BLAKE160_SIZE) != 0)
-    return ERROR_INVALID_PREIMAGE;
+  if (memcmp(hash, id->id, BLAKE160_SIZE) != 0) return ERROR_INVALID_PREIMAGE;
 
   uint8_t *code_hash = preimage;
   uint8_t hash_type = *(preimage + 32);
@@ -322,20 +322,20 @@ int verify_via_dl(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
 
 int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
                         uint8_t *preimage, uint32_t preimage_size) {
-  if (id->flags == IdentityFlagsPubkeyHash) {
+  if (id->flags == IdentityFlagsCkb) {
     if (sig == NULL || sig_size != SECP256K1_SIGNATURE_SIZE) {
       return ERROR_IDENTITY_WRONG_ARGS;
     }
-    return verify_sighash_all(id->blake160, sig, sig_size,
+    return verify_sighash_all(id->id, sig, sig_size,
                               validate_signature_secp256k1);
   } else if (id->flags == IdentityFlagsOwnerLock) {
-    if (is_lock_script_hash_present(id->blake160)) {
+    if (is_lock_script_hash_present(id->id)) {
       return 0;
     } else {
       return ERROR_IDENTITY_LOCK_SCRIPT_HASH_NOT_FOUND;
     }
   } else if (id->flags == IdentityFlagsDl) {
-    uint8_t code_buffer[MAX_CODE_SIZE]  __attribute__((aligned(RISCV_PGSIZE)));;
+    uint8_t code_buffer[MAX_CODE_SIZE] __attribute__((aligned(RISCV_PGSIZE)));
     CkbSwappableSignatureInstance swappable_inst = {
         .code_buffer = code_buffer,
         .code_buffer_size = MAX_CODE_SIZE,
