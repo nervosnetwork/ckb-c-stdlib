@@ -16,7 +16,6 @@
 #define SECP256K1_SIGNATURE_SIZE 65
 #define SECP256K1_MESSAGE_SIZE 32
 #define MAX_PREIMAGE_SIZE 1024
-#define MAX_CODE_SIZE (1024 * 400)
 
 enum CkbIdentityErrorCode {
   ERROR_IDENTITY_ARGUMENTS_LEN = -1,
@@ -320,6 +319,67 @@ int verify_via_dl(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
   return verify_sighash_all(pubkey_hash, sig, sig_len, inst->verify_func);
 }
 
+int verify_via_exec(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
+                    uint8_t *preimage, uint32_t preimage_len) {
+  int err = 0;
+  uint8_t hash[BLAKE2B_BLOCK_SIZE];
+
+  // code hash: 32 bytes
+  // hash type: 1 byte
+  // place: 1 byte
+  // bounds: 8 bytes
+  // pubkey hash: 20 bytes
+  if (preimage_len != (32 + 1 + 1 + 8 + 20)) return ERROR_INVALID_PREIMAGE;
+
+  int ret = 0;
+
+  // check preimage hash
+  blake2b_state ctx;
+  blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
+  blake2b_update(&ctx, preimage, preimage_len);
+  blake2b_final(&ctx, hash, BLAKE2B_BLOCK_SIZE);
+  if (memcmp(hash, id->id, BLAKE160_SIZE) != 0) return ERROR_INVALID_PREIMAGE;
+
+  // get message
+  uint8_t msg[BLAKE2B_BLOCK_SIZE];
+  ret = generate_sighash_all(msg, sizeof(msg));
+  if (ret != 0) {
+    return ret;
+  }
+
+  uint8_t *code_hash = preimage;
+  uint8_t hash_type = *(preimage + 32);
+  // place is not used
+  // uint8_t _place = *(preimage + 32 + 1);
+  uint32_t *length = (uint32_t *)(preimage + 32 + 1 + 1);
+  uint32_t *offset = (uint32_t *)(preimage + 32 + 1 + 1 + 4);
+  uint8_t *pubkey_hash = preimage + 32 + 1 + 1 + 4 + 4;
+
+  CkbBinaryArgsType bin_args;
+  CkbHexArgsType out;
+  ckb_exec_reset(&bin_args);
+  // <code hash in hex>:<hash type in hex>:<pubkey hash in hex>:<message
+  // 1>:<signature 1>
+  err = ckb_exec_append(&bin_args, code_hash, 32);
+  if (err != 0) return err;
+  err = ckb_exec_append(&bin_args, &hash_type, 1);
+  if (err != 0) return err;
+  err = ckb_exec_append(&bin_args, pubkey_hash, 20);
+  if (err != 0) return err;
+  err = ckb_exec_append(&bin_args, msg, sizeof(msg));
+  if (err != 0) return 0;
+  err = ckb_exec_append(&bin_args, sig, sig_len);
+  if (err != 0) return err;
+  err = ckb_exec_encode_params(&bin_args, &out);
+  if (err != 0) return err;
+
+  const char *argv[1] = {out.buff};
+  return ckb_exec_cell(code_hash, hash_type, *offset, *length, 1, argv);
+}
+
+static uint8_t *g_identity_code_buffer = NULL;
+static uint32_t g_identity_code_size = 0;
+
 int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
                         uint8_t *preimage, uint32_t preimage_size) {
   if (id->flags == IdentityFlagsCkb) {
@@ -335,10 +395,10 @@ int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
       return ERROR_IDENTITY_LOCK_SCRIPT_HASH_NOT_FOUND;
     }
   } else if (id->flags == IdentityFlagsDl) {
-    uint8_t code_buffer[MAX_CODE_SIZE] __attribute__((aligned(RISCV_PGSIZE)));
+    if (g_identity_code_buffer == NULL) return ERROR_IDENTITY_WRONG_ARGS;
     CkbSwappableSignatureInstance swappable_inst = {
-        .code_buffer = code_buffer,
-        .code_buffer_size = MAX_CODE_SIZE,
+        .code_buffer = g_identity_code_buffer,
+        .code_buffer_size = g_identity_code_size,
         .prefilled_data_buffer = NULL,
         .prefilled_buffer_size = 0,
         .verify_func = NULL};
@@ -348,6 +408,11 @@ int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
     // TODO
   }
   return CKB_INVALID_DATA;
+}
+
+void ckb_identity_init_code_buffer(uint8_t *p, uint32_t size) {
+  g_identity_code_buffer = p;
+  g_identity_code_size = size;
 }
 
 #endif
