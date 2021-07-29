@@ -329,7 +329,10 @@ int verify_via_exec(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
   // place: 1 byte
   // bounds: 8 bytes
   // pubkey hash: 20 bytes
-  if (preimage_len != (32 + 1 + 1 + 8 + 20)) return ERROR_INVALID_PREIMAGE;
+  if (preimage_len != (32 + 1 + 1 + 8 + 20)) {
+    printf("wrong preimage_len = %d", preimage_len);
+    return ERROR_INVALID_PREIMAGE;
+  }
 
   int ret = 0;
 
@@ -338,7 +341,10 @@ int verify_via_exec(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
   blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
   blake2b_update(&ctx, preimage, preimage_len);
   blake2b_final(&ctx, hash, BLAKE2B_BLOCK_SIZE);
-  if (memcmp(hash, id->id, BLAKE160_SIZE) != 0) return ERROR_INVALID_PREIMAGE;
+  if (memcmp(hash, id->id, BLAKE160_SIZE) != 0) {
+    printf("invalid preimage hash");
+    return ERROR_INVALID_PREIMAGE;
+  }
 
   // get message
   uint8_t msg[BLAKE2B_BLOCK_SIZE];
@@ -405,7 +411,7 @@ int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
     return verify_via_dl(id, sig, sig_size, preimage, preimage_size,
                          &swappable_inst);
   } else if (id->flags == IdentityFlagsExec) {
-    // TODO
+    return verify_via_exec(id, sig, sig_size, preimage, preimage_size);
   }
   return CKB_INVALID_DATA;
 }
