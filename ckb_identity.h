@@ -5,6 +5,7 @@
 #include <ckb_exec.h>
 
 #include "ckb_consts.h"
+#include "ckb_keccak256.h"
 
 #define CKB_IDENTITY_LEN 21
 #define RECID_INDEX 64
@@ -59,6 +60,9 @@ typedef int (*validate_signature_t)(void *prefilled_data, const uint8_t *sig,
                                     size_t msg_len, uint8_t *output,
                                     size_t *output_len);
 
+typedef int (*convert_msg_t)(const uint8_t *msg, size_t msg_len,
+                             uint8_t *new_msg, size_t new_msg_len);
+
 static int extract_witness_lock(uint8_t *witness, uint64_t len,
                                 mol_seg_t *lock_bytes_seg) {
   if (len < 20) {
@@ -101,15 +105,12 @@ int load_and_hash_witness(blake2b_state *ctx, size_t start, size_t index,
   return CKB_SUCCESS;
 }
 
-int validate_signature_secp256k1(void *prefilled_data, const uint8_t *sig,
-                                 size_t sig_len, const uint8_t *msg,
-                                 size_t msg_len, uint8_t *output,
-                                 size_t *output_len) {
-  (void)prefilled_data;
+static int _ckb_recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
+                                         const uint8_t *msg, size_t msg_len,
+                                         uint8_t *out_pubkey,
+                                         size_t *out_pubkey_size) {
   int ret = 0;
-  if (*output_len < BLAKE160_SIZE) {
-    return ERROR_IDENTITY_ARGUMENTS_LEN;
-  }
+
   if (sig_len != SECP256K1_SIGNATURE_SIZE) {
     return ERROR_IDENTITY_ARGUMENTS_LEN;
   }
@@ -137,18 +138,60 @@ int validate_signature_secp256k1(void *prefilled_data, const uint8_t *sig,
     return ERROR_IDENTITY_SECP_RECOVER_PUBKEY;
   }
 
-  uint8_t temp[PUBKEY_SIZE];
-  size_t pubkey_size = PUBKEY_SIZE;
-  if (secp256k1_ec_pubkey_serialize(&context, temp, &pubkey_size, &pubkey,
-                                    SECP256K1_EC_COMPRESSED) != 1) {
+  *out_pubkey_size = PUBKEY_SIZE;
+  if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size,
+                                    &pubkey, SECP256K1_EC_COMPRESSED) != 1) {
     return ERROR_IDENTITY_SECP_SERIALIZE_PUBKEY;
   }
+  return ret;
+}
+
+int validate_signature_secp256k1(void *prefilled_data, const uint8_t *sig,
+                                 size_t sig_len, const uint8_t *msg,
+                                 size_t msg_len, uint8_t *output,
+                                 size_t *output_len) {
+  int ret = 0;
+  if (*output_len < BLAKE160_SIZE) {
+    return ERROR_IDENTITY_ARGUMENTS_LEN;
+  }
+  uint8_t out_pubkey[PUBKEY_SIZE];
+  size_t out_pubkey_size = PUBKEY_SIZE;
+  ret = _ckb_recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
+                                      &out_pubkey_size);
+  if (ret != 0) return ret;
+
   blake2b_state ctx;
   blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
-  blake2b_update(&ctx, temp, pubkey_size);
-  blake2b_final(&ctx, temp, BLAKE2B_BLOCK_SIZE);
+  blake2b_update(&ctx, out_pubkey, out_pubkey_size);
+  blake2b_final(&ctx, out_pubkey, BLAKE2B_BLOCK_SIZE);
 
-  memcpy(output, temp, BLAKE160_SIZE);
+  memcpy(output, out_pubkey, BLAKE160_SIZE);
+  *output_len = BLAKE160_SIZE;
+
+  return ret;
+}
+
+int validate_signature_secp256k1_pw(void *prefilled_data, const uint8_t *sig,
+                                    size_t sig_len, const uint8_t *msg,
+                                    size_t msg_len, uint8_t *output,
+                                    size_t *output_len) {
+  int ret = 0;
+  if (*output_len < BLAKE160_SIZE) {
+    return ERROR_IDENTITY_ARGUMENTS_LEN;
+  }
+  uint8_t out_pubkey[PUBKEY_SIZE];
+  size_t out_pubkey_size = PUBKEY_SIZE;
+  ret = _ckb_recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
+                                      &out_pubkey_size);
+  if (ret != 0) return ret;
+
+  // here are the 2 differences than validate_signature_secp256k1
+  SHA3_CTX sha3_ctx;
+  keccak_init(&sha3_ctx);
+  keccak_update(&sha3_ctx, &out_pubkey[1], out_pubkey_size - 1);
+  keccak_final(&sha3_ctx, out_pubkey);
+
+  memcpy(output, &out_pubkey[12], BLAKE160_SIZE);
   *output_len = BLAKE160_SIZE;
 
   return ret;
@@ -246,23 +289,58 @@ int generate_sighash_all(uint8_t *msg, size_t msg_len) {
   return 0;
 }
 
+static int _ckb_convert_copy(const uint8_t *msg, size_t msg_len,
+                             uint8_t *new_msg, size_t new_msg_len) {
+  if (msg_len != new_msg_len || msg_len != BLAKE2B_BLOCK_SIZE)
+    return ERROR_IDENTITY_ARGUMENTS_LEN;
+  memcpy(new_msg, msg, msg_len);
+  return 0;
+}
+
+static int _ckb_convert_keccak256_hash(const uint8_t *msg, size_t msg_len,
+                                       uint8_t *new_msg, size_t new_msg_len) {
+  if (msg_len != new_msg_len || msg_len != BLAKE2B_BLOCK_SIZE)
+    return ERROR_IDENTITY_ARGUMENTS_LEN;
+  printf("old_msg: %d %d", msg[0], msg[1]);
+
+  SHA3_CTX sha3_ctx;
+  keccak_init(&sha3_ctx);
+  /* personal hash, ethereum prefix  \u0019Ethereum Signed Message:\n32  */
+  unsigned char eth_prefix[28];
+  eth_prefix[0] = 0x19;
+  memcpy(eth_prefix + 1, "Ethereum Signed Message:\n32", 27);
+
+  keccak_update(&sha3_ctx, eth_prefix, 28);
+  keccak_update(&sha3_ctx, (unsigned char *)msg, 32);
+  keccak_final(&sha3_ctx, new_msg);
+  printf("new_msg: %d %d", new_msg[0], new_msg[1]);
+  return 0;
+}
+
 int verify_sighash_all(uint8_t *pubkey_hash, uint8_t *sig, uint32_t sig_len,
-                       validate_signature_t func) {
+                       validate_signature_t func, convert_msg_t convert) {
   int ret = 0;
-  uint8_t msg[BLAKE2B_BLOCK_SIZE];
-  ret = generate_sighash_all(msg, sizeof(msg));
+  uint8_t old_msg[BLAKE2B_BLOCK_SIZE];
+  uint8_t new_msg[BLAKE2B_BLOCK_SIZE];
+  ret = generate_sighash_all(old_msg, sizeof(old_msg));
   if (ret != 0) {
     return ret;
   }
+  ret = convert(old_msg, sizeof(old_msg), new_msg, sizeof(new_msg));
+  if (ret != 0) return ret;
+
   uint8_t output_pubkey_hash[BLAKE160_SIZE];
   size_t output_len = BLAKE160_SIZE;
-  ret = func(NULL, sig, sig_len, msg, sizeof(msg), output_pubkey_hash,
+  ret = func(NULL, sig, sig_len, new_msg, sizeof(new_msg), output_pubkey_hash,
              &output_len);
   if (ret != 0) {
     return ret;
   }
-
+  printf("pubkey_hash = %d %d", pubkey_hash[0], pubkey_hash[1]);
+  printf("output_pubkey_hash = %d %d", output_pubkey_hash[0],
+         output_pubkey_hash[1]);
   if (memcmp(pubkey_hash, output_pubkey_hash, BLAKE160_SIZE) != 0) {
+    printf("ERROR_IDENTITY_PUBKEY_BLAKE160_HASH");
     return ERROR_IDENTITY_PUBKEY_BLAKE160_HASH;
   }
 
@@ -316,7 +394,8 @@ int verify_via_dl(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
   err = ckb_initialize_swappable_signature(code_hash, hash_type, inst);
   if (err != 0) return err;
 
-  return verify_sighash_all(pubkey_hash, sig, sig_len, inst->verify_func);
+  return verify_sighash_all(pubkey_hash, sig, sig_len, inst->verify_func,
+                            _ckb_convert_copy);
 }
 
 int verify_via_exec(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
@@ -393,7 +472,14 @@ int ckb_verify_identity(CkbIdentityType *id, uint8_t *sig, uint32_t sig_size,
       return ERROR_IDENTITY_WRONG_ARGS;
     }
     return verify_sighash_all(id->id, sig, sig_size,
-                              validate_signature_secp256k1);
+                              validate_signature_secp256k1, _ckb_convert_copy);
+  } else if (id->flags == IdentityFlagsEthereum) {
+    if (sig == NULL || sig_size != SECP256K1_SIGNATURE_SIZE) {
+      return ERROR_IDENTITY_WRONG_ARGS;
+    }
+    return verify_sighash_all(id->id, sig, sig_size,
+                              validate_signature_secp256k1_pw,
+                              _ckb_convert_keccak256_hash);
   } else if (id->flags == IdentityFlagsOwnerLock) {
     if (is_lock_script_hash_present(id->id)) {
       return 0;
