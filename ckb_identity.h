@@ -301,7 +301,6 @@ static int _ckb_convert_keccak256_hash(const uint8_t *msg, size_t msg_len,
                                        uint8_t *new_msg, size_t new_msg_len) {
   if (msg_len != new_msg_len || msg_len != BLAKE2B_BLOCK_SIZE)
     return ERROR_IDENTITY_ARGUMENTS_LEN;
-  printf("old_msg: %d %d", msg[0], msg[1]);
 
   SHA3_CTX sha3_ctx;
   keccak_init(&sha3_ctx);
@@ -313,7 +312,6 @@ static int _ckb_convert_keccak256_hash(const uint8_t *msg, size_t msg_len,
   keccak_update(&sha3_ctx, eth_prefix, 28);
   keccak_update(&sha3_ctx, (unsigned char *)msg, 32);
   keccak_final(&sha3_ctx, new_msg);
-  printf("new_msg: %d %d", new_msg[0], new_msg[1]);
   return 0;
 }
 
@@ -336,11 +334,7 @@ int verify_sighash_all(uint8_t *pubkey_hash, uint8_t *sig, uint32_t sig_len,
   if (ret != 0) {
     return ret;
   }
-  printf("pubkey_hash = %d %d", pubkey_hash[0], pubkey_hash[1]);
-  printf("output_pubkey_hash = %d %d", output_pubkey_hash[0],
-         output_pubkey_hash[1]);
   if (memcmp(pubkey_hash, output_pubkey_hash, BLAKE160_SIZE) != 0) {
-    printf("ERROR_IDENTITY_PUBKEY_BLAKE160_HASH");
     return ERROR_IDENTITY_PUBKEY_BLAKE160_HASH;
   }
 
@@ -409,7 +403,6 @@ int verify_via_exec(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
   // bounds: 8 bytes
   // pubkey hash: 20 bytes
   if (preimage_len != (32 + 1 + 1 + 8 + 20)) {
-    printf("wrong preimage_len = %d", preimage_len);
     return ERROR_INVALID_PREIMAGE;
   }
 
@@ -421,7 +414,6 @@ int verify_via_exec(CkbIdentityType *id, uint8_t *sig, uint32_t sig_len,
   blake2b_update(&ctx, preimage, preimage_len);
   blake2b_final(&ctx, hash, BLAKE2B_BLOCK_SIZE);
   if (memcmp(hash, id->id, BLAKE160_SIZE) != 0) {
-    printf("invalid preimage hash");
     return ERROR_INVALID_PREIMAGE;
   }
 
