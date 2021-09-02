@@ -11,6 +11,8 @@
 #define RECID_INDEX 64
 #define ONE_BATCH_SIZE 32768
 #define PUBKEY_SIZE 33
+#define UNCOMPRESSED_PUBKEY_SIZE 65
+
 #define MAX_WITNESS_SIZE 32768
 #define BLAKE2B_BLOCK_SIZE 32
 #define BLAKE160_SIZE 20
@@ -108,7 +110,8 @@ int load_and_hash_witness(blake2b_state *ctx, size_t start, size_t index,
 static int _ckb_recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
                                          const uint8_t *msg, size_t msg_len,
                                          uint8_t *out_pubkey,
-                                         size_t *out_pubkey_size) {
+                                         size_t *out_pubkey_size,
+                                         bool compressed) {
   int ret = 0;
 
   if (sig_len != SECP256K1_SIGNATURE_SIZE) {
@@ -138,9 +141,16 @@ static int _ckb_recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
     return ERROR_IDENTITY_SECP_RECOVER_PUBKEY;
   }
 
-  *out_pubkey_size = PUBKEY_SIZE;
+  unsigned int flag = SECP256K1_EC_COMPRESSED;
+  if (compressed) {
+    *out_pubkey_size = PUBKEY_SIZE;
+    flag = SECP256K1_EC_COMPRESSED;
+  } else {
+    *out_pubkey_size = UNCOMPRESSED_PUBKEY_SIZE;
+    flag = SECP256K1_EC_UNCOMPRESSED;
+  }
   if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size,
-                                    &pubkey, SECP256K1_EC_COMPRESSED) != 1) {
+                                    &pubkey, flag) != 1) {
     return ERROR_IDENTITY_SECP_SERIALIZE_PUBKEY;
   }
   return ret;
@@ -157,7 +167,7 @@ int validate_signature_secp256k1(void *prefilled_data, const uint8_t *sig,
   uint8_t out_pubkey[PUBKEY_SIZE];
   size_t out_pubkey_size = PUBKEY_SIZE;
   ret = _ckb_recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
-                                      &out_pubkey_size);
+                                      &out_pubkey_size, true);
   if (ret != 0) return ret;
 
   blake2b_state ctx;
@@ -179,10 +189,10 @@ int validate_signature_secp256k1_pw(void *prefilled_data, const uint8_t *sig,
   if (*output_len < BLAKE160_SIZE) {
     return ERROR_IDENTITY_ARGUMENTS_LEN;
   }
-  uint8_t out_pubkey[PUBKEY_SIZE];
-  size_t out_pubkey_size = PUBKEY_SIZE;
+  uint8_t out_pubkey[UNCOMPRESSED_PUBKEY_SIZE];
+  size_t out_pubkey_size = UNCOMPRESSED_PUBKEY_SIZE;
   ret = _ckb_recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
-                                      &out_pubkey_size);
+                                      &out_pubkey_size, false);
   if (ret != 0) return ret;
 
   // here are the 2 differences than validate_signature_secp256k1
