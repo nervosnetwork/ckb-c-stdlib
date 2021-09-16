@@ -98,19 +98,19 @@ int ckb_since_cmp(uint64_t a, uint64_t b, int *comparable) {
 /*
  * A temporal patch to solve https://github.com/nervosnetwork/ckb-vm/issues/97.
  * If you use a ckb-vm >= 0.20.x, you can safely ignore it. A common practice
- * is that use CKB_SP_ALIGNED in the first line of the main(), and then use
- * CKB_SP_RESTORE before exiting.
+ * is that use CKB_SP_ALIGN in the first line of the main(), and then use
+ * CKB_SP_ALIGN_END before exiting.
  *
  * Example:
  *   int main() {
- *     CKB_SP_ALIGNED;
+ *     CKB_SP_ALIGN;
  *     ...
  *     if cond {
- *       CKB_SP_RESTORE;
+ *       CKB_SP_ALIGN_END;
  *       return 1;
  *     }
  *     ...
- *     CKB_SP_RESTORE;
+ *     CKB_SP_ALIGN_END;
  *     return 0;
  *   }
  */
