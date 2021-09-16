@@ -114,7 +114,7 @@ int ckb_since_cmp(uint64_t a, uint64_t b, int *comparable) {
  *     return 0;
  *   }
  */
-#define CKB_SP_ALIGNED                                                         \
+#define CKB_SP_ALIGN                                                           \
   __asm__("addi t0, sp, 0\n\t"                                                 \
           "andi sp, sp, 0xfffffffffffffff8\n\t"                                \
           "sd t0, -8(sp)\n\t"                                                  \
@@ -124,6 +124,6 @@ int ckb_since_cmp(uint64_t a, uint64_t b, int *comparable) {
           :                                                                    \
           :                                                                    \
           : "t0")
-#define CKB_SP_RESTORE __asm__("ld sp, 0(sp)")
+#define CKB_SP_ALIGN_END __asm__("ld sp, 0(sp)")
 
 #endif /* CKB_C_STDLIB_CKB_UTILS_H_ */
