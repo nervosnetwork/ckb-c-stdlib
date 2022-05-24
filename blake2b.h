@@ -156,7 +156,13 @@ static BLAKE2_INLINE void store64(void *dst, uint64_t w) {
 }
 
 static BLAKE2_INLINE uint64_t rotr64(const uint64_t w, const unsigned c) {
+#if defined(USE_B_EXTENSION)
+  uint64_t rd = 0;
+  __asm__ ("ror %0, %1, %2" : "=r"(rd) : "r"(w), "r"(c));
+  return rd;
+#else
   return (w >> c) | (w << (64 - c));
+#endif
 }
 
 /* prevents compiler optimizing out memset() */
