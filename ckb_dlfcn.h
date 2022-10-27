@@ -355,7 +355,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
           return ERROR_INVALID_ELF;
         }
         relocation_size -= load_size;
-        current_offset += load_length;
+        current_offset += load_size * sizeof(Elf64_Rela);
         for (size_t j = 0; j < load_size; j++) {
           Elf64_Rela *r = &relocations[j];
           if (r->r_info != R_RISCV_RELATIVE) {
