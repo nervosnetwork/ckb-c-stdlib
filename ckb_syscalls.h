@@ -377,6 +377,47 @@ int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
                  argv);
 }
 
+typedef struct {
+  uint64_t memory_limit;
+  int8_t* exit_code;
+  uint8_t* content;
+  uint64_t* content_length;
+} spawn_args;
+
+int ckb_spawn(uint64_t memory_limit, size_t index, size_t source, size_t bounds,
+              int argc, const char* argv[], int8_t* exit_code, uint8_t* content,
+              uint64_t* content_length) {
+  spawn_args spgs = {
+      .memory_limit = memory_limit,
+      .exit_code = exit_code,
+      .content = content,
+      .content_length = content_length,
+  };
+  return syscall(SYS_ckb_spawn, index, source, bounds, argc, argv, &spgs);
+}
+
+int ckb_spawn_cell(uint64_t memory_limit, const uint8_t* code_hash,
+                   uint8_t hash_type, uint32_t offset, uint32_t length,
+                   int argc, const char* argv[], int8_t* exit_code,
+                   uint8_t* content, uint64_t* content_length) {
+  size_t index = SIZE_MAX;
+  int ret = ckb_look_for_dep_with_hash2(code_hash, hash_type, &index);
+  if (ret != CKB_SUCCESS) {
+    return ret;
+  }
+  size_t bounds = ((size_t)offset << 32) | length;
+  return ckb_spawn(memory_limit, index, CKB_SOURCE_CELL_DEP, bounds, argc, argv,
+                   exit_code, content, content_length);
+}
+
+int ckb_get_memory_limit() {
+  return syscall(SYS_ckb_get_memory_limit, 0, 0, 0, 0, 0, 0);
+}
+
+int ckb_set_content(uint8_t* content, uint64_t* length) {
+  return syscall(SYS_ckb_set_content, content, length, 0, 0, 0, 0);
+}
+
 #endif /* CKB_STDLIB_NO_SYSCALL_IMPL */
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALLS_H_ */
