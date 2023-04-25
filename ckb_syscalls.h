@@ -378,13 +378,13 @@ int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
 }
 
 int ckb_spawn(size_t index, size_t source, size_t bounds, int argc,
-              const char* argv[], spawn_args* spgs) {
+              const char* argv[], spawn_args_t* spgs) {
   return syscall(SYS_ckb_spawn, index, source, bounds, argc, argv, spgs);
 }
 
 int ckb_spawn_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
                    uint32_t length, int argc, const char* argv[],
-                   spawn_args* spgs) {
+                   spawn_args_t* spgs) {
   size_t index = SIZE_MAX;
   int ret = ckb_look_for_dep_with_hash2(code_hash, hash_type, &index);
   if (ret != CKB_SUCCESS) {
