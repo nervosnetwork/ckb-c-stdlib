@@ -19,6 +19,9 @@
 #define SYS_ckb_load_cell_data_as_code 2091
 #define SYS_ckb_load_cell_data 2092
 #define SYS_ckb_debug 2177
+#define SYS_ckb_spawn 2101
+#define SYS_ckb_get_memory_limit 2102
+#define SYS_ckb_set_content 2103
 
 #define CKB_SUCCESS 0
 #define CKB_INDEX_OUT_OF_BOUND 1

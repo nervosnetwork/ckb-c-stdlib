@@ -42,4 +42,18 @@ int ckb_dlopen2(const uint8_t* dep_cell_hash, uint8_t hash_type,
                 size_t* consumed_size);
 void* ckb_dlsym(void* handle, const char* symbol);
 
+typedef struct spawn_args_t {
+  uint64_t memory_limit;
+  int8_t* exit_code;
+  uint8_t* content;
+  uint64_t* content_length;
+} spawn_args_t;
+int ckb_spawn(size_t index, size_t source, size_t bounds, int argc,
+              const char* argv[], spawn_args_t* spgs);
+int ckb_spawn_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
+                   uint32_t length, int argc, const char* argv[],
+                   spawn_args_t* spgs);
+int ckb_get_memory_limit();
+int ckb_set_content(uint8_t* content, uint64_t* length);
+
 #endif /* CKB_C_STDLIB_CKB_SYSCALL_APIS_H_ */
