@@ -398,6 +398,7 @@ static void cycle(size_t width, unsigned char *ar[], int n) {
     }
     width -= l;
   }
+  ar[n] = NULL;
 }
 
 /* shl() and shr() need n > 0 */
