@@ -83,9 +83,16 @@ int _ckb_locate_first_type_id_output_index(uint64_t* index) {
     len = 32;
     ret = ckb_load_cell_by_field(buffer, &len, 0, i, CKB_SOURCE_OUTPUT,
                                  CKB_CELL_FIELD_TYPE_HASH);
+
     if (ret != CKB_SUCCESS) {
-      DEBUG("Error fetching output type hash to locate type id index!");
-      return ret;
+      if (ret != CKB_ITEM_MISSING) {
+        DEBUG("Error fetching output type hash to locate type id index!");
+        return ret;
+      } else {
+        // type script hash can be missing, it's not error
+        i += 1;
+        continue;
+      }
     }
     if (len != 32) {
       DEBUG("Invalid type hash length!");
