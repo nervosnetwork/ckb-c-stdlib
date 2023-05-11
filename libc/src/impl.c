@@ -379,6 +379,11 @@ static inline int pntz(size_t p[2]) {
   return 0;
 }
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
+
 static void cycle(size_t width, unsigned char *ar[], int n) {
   unsigned char tmp[256];
   size_t l;
@@ -399,6 +404,10 @@ static void cycle(size_t width, unsigned char *ar[], int n) {
     width -= l;
   }
 }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 /* shl() and shr() need n > 0 */
 static inline void shl(size_t p[2], int n) {
