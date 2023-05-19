@@ -379,7 +379,7 @@ static inline int pntz(size_t p[2]) {
   return 0;
 }
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && (__GNUC__ >= 12)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-pointer"
 #endif
@@ -405,7 +405,7 @@ static void cycle(size_t width, unsigned char *ar[], int n) {
   }
 }
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && (__GNUC__ >= 12)
 #pragma GCC diagnostic pop
 #endif
 
