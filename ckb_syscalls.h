@@ -402,6 +402,10 @@ int ckb_set_content(uint8_t* content, uint64_t* length) {
   return syscall(SYS_ckb_set_content, content, length, 0, 0, 0, 0);
 }
 
+int ckb_peak_memory() {
+  return syscall(SYS_ckb_peak_memory, 0, 0, 0, 0, 0, 0);
+}
+
 #endif /* CKB_STDLIB_NO_SYSCALL_IMPL */
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALLS_H_ */
