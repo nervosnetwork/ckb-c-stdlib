@@ -22,6 +22,7 @@
 #define SYS_ckb_spawn 2101
 #define SYS_ckb_get_memory_limit 2102
 #define SYS_ckb_set_content 2103
+#define SYS_ckb_load_extension 2104
 #define SYS_ckb_current_memory 2105
 
 #define CKB_SUCCESS 0
