@@ -9,9 +9,11 @@ __attribute__((visibility("default"))) __attribute__((naked)) void _start() {
   asm volatile(
       ".option push\n"
       ".option norelax\n"
+#ifndef CKB_NO_ENTRY_GP
       "1:auipc gp, %pcrel_hi(__global_pointer$)\n"
       "addi gp, gp, %pcrel_lo(1b)\n"
       ".option pop\n"
+#endif
       /*
        * By default CKB VM initializes all memory to 0, there's no need
        * to clear BSS segment again.
