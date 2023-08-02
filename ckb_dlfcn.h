@@ -81,6 +81,7 @@ typedef struct {
 } Elf64_Sym;
 
 #define R_RISCV_RELATIVE 3
+#define R_RISCV_JUMP_SLOT 5
 
 typedef struct {
   uint64_t r_offset;
@@ -103,6 +104,7 @@ typedef struct {
 #define ERROR_MEMORY_NOT_ENOUGH -23
 #define ERROR_OUT_OF_BOUND -24
 #define ERROR_INVALID_ARGS -25
+#define ERROR_ELF_NOT_ALIGNED -26
 
 typedef struct {
   Elf64_Sym *dynsyms;
@@ -245,7 +247,19 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (addr2 == 0) {
           return ERROR_INVALID_ELF;
         }
-        ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset, ph->p_filesz,
+        /*
+         * There is a slight defect in current syscall: if the padding
+         * required for memory alignment is bigger than the ELF starting
+         * offset to load, there is not a way for current syscall to correctly
+         * load the ELF. We use a check here to guard for the condition, and
+         * exit when it is not satisfied. A better solution might to explicitly
+         * ask for page aligned code section in linker, or wait for a fixed
+         * syscall version.
+         */
+        if (ph->p_offset < prepad) {
+          return ERROR_ELF_NOT_ALIGNED;
+        }
+        ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset - prepad, ph->p_filesz,
                                   index, CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
@@ -358,9 +372,12 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         current_offset += load_size * sizeof(Elf64_Rela);
         for (size_t j = 0; j < load_size; j++) {
           Elf64_Rela *r = &relocations[j];
-          if (r->r_info != R_RISCV_RELATIVE) {
-            /* Only relative relocation is supported now, we might add more
-             * later */
+          uint32_t t = (uint32_t) r->r_info;
+          if (t != R_RISCV_RELATIVE && t != R_RISCV_JUMP_SLOT) {
+            /*
+             * Only relative and jump slot relocations are supported now,
+             * we might add more later.
+             */
             return ERROR_INVALID_ELF;
           }
           if (r->r_offset >= (aligned_size - sizeof(uint64_t)) ||
