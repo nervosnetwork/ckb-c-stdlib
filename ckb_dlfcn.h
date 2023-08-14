@@ -259,7 +259,13 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (ph->p_offset < prepad) {
           return ERROR_ELF_NOT_ALIGNED;
         }
-        ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset - prepad, ph->p_filesz,
+        uint64_t offset = ph->p_offset;
+        uint64_t read_size = ph->p_filesz;
+        if (offset % RISCV_PGSIZE != 0) {
+            read_size += offset % RISCV_PGSIZE;
+            offset = offset / RISCV_PGSIZE * RISCV_PGSIZE;
+        }
+        ret = _ckb_load_cell_code(addr2, memsz, offset, read_size,
                                   index, CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
