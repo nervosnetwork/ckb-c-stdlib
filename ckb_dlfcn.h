@@ -259,8 +259,9 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (ph->p_offset < prepad) {
           return ERROR_ELF_NOT_ALIGNED;
         }
-        ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset - prepad, ph->p_filesz,
-                                  index, CKB_SOURCE_CELL_DEP);
+        ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset - prepad,
+                                  ph->p_filesz + prepad, index,
+                                  CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
         }
@@ -394,7 +395,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         return ERROR_INVALID_ELF;
       }
       uint8_t *addr2 =
-          addr_offset_checked(aligned_addr, aligned_size, sh->sh_offset);
+          addr_offset_checked(aligned_addr, aligned_size, sh->sh_addr);
       if (addr2 == 0) {
         return ERROR_INVALID_ELF;
       }
@@ -413,7 +414,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         const char *current_str = shrtab + sh->sh_name;
         if (strcmp(DYNSTR, current_str) == 0) {
           const uint8_t *addr2 =
-              addr_offset_checked(aligned_addr, aligned_size, sh->sh_offset);
+              addr_offset_checked(aligned_addr, aligned_size, sh->sh_addr);
           if (addr2 == 0) {
             return ERROR_INVALID_ELF;
           }
