@@ -406,9 +406,8 @@ int ckb_current_memory() {
   return syscall(SYS_ckb_current_memory, 0, 0, 0, 0, 0, 0);
 }
 
-int ckb_load_extension(void* addr, uint64_t* len, size_t offset, size_t index, size_t source)
-{
-  return syscall(SYS_ckb_load_extension, addr, len, offset, index, source, 0);
+int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset, size_t index, size_t source) {
+  return syscall(SYS_ckb_load_block_extension, addr, len, offset, index, source, 0);
 }
 
 #endif /* CKB_STDLIB_NO_SYSCALL_IMPL */
