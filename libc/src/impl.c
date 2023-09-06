@@ -1083,6 +1083,30 @@ static int _vsnprintf(out_fct_type out, char *buffer, const size_t maxlen,
         format++;
         break;
       }
+#if defined(PRINTF_SUPPORT_FLOAT)
+    case 'f':
+    case 'F':
+      if (*format == 'F')
+        flags |= FLAGS_UPPERCASE;
+      idx = _ftoa(out, buffer, idx, maxlen, va_arg(va, double), precision,
+                  width, flags);
+      format++;
+      break;
+#if defined(PRINTF_SUPPORT_EXPONENTIAL)
+    case 'e':
+    case 'E':
+    case 'g':
+    case 'G':
+      if ((*format == 'g') || (*format == 'G'))
+        flags |= FLAGS_ADAPT_EXP;
+      if ((*format == 'E') || (*format == 'G'))
+        flags |= FLAGS_UPPERCASE;
+      idx = _etoa(out, buffer, idx, maxlen, va_arg(va, double), precision,
+                  width, flags);
+      format++;
+      break;
+#endif // PRINTF_SUPPORT_EXPONENTIAL
+#endif // PRINTF_SUPPORT_FLOAT
       case 'c': {
         unsigned int l = 1U;
         // pre padding
