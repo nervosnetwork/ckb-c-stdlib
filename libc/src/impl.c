@@ -1229,8 +1229,13 @@ int ckb_printf(const char *format, ...) {
 
 #else
 
+#ifdef CKB_PRINTF_DECLARATION_ONLY
+int printf(const char *format, ...);
+int ckb_printf(const char *format, ...);
+#else
 int printf(const char *format, ...) { return 0; }
 int ckb_printf(const char *format, ...) { return 0; }
+#endif /* CKB_PRINTF_DECLARATION_ONLY */
 
 #endif /* CKB_C_STDLIB_PRINTF */
 
