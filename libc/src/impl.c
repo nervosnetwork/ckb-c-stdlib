@@ -329,13 +329,17 @@ int strcmp(const char *l, const char *r) {
   return *(unsigned char *)l - *(unsigned char *)r;
 }
 
+#ifdef CKB_MALLOC_DECLARATION_ONLY
+void *malloc(size_t size);
+void free(void *ptr);
+void *calloc(size_t nmemb, size_t size);
+void *realloc(void *ptr, size_t size);
+#else
 void *malloc(size_t size) { return NULL; }
-
 void free(void *ptr) {}
-
 void *calloc(size_t nmemb, size_t size) { return NULL; }
-
 void *realloc(void *ptr, size_t size) { return NULL; }
+#endif
 
 /*
  * qsort implementation below is modified from
