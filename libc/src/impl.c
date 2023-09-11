@@ -329,13 +329,17 @@ int strcmp(const char *l, const char *r) {
   return *(unsigned char *)l - *(unsigned char *)r;
 }
 
+#ifdef CKB_MALLOC_DECLARATION_ONLY
+void *malloc(size_t size);
+void free(void *ptr);
+void *calloc(size_t nmemb, size_t size);
+void *realloc(void *ptr, size_t size);
+#else
 void *malloc(size_t size) { return NULL; }
-
 void free(void *ptr) {}
-
 void *calloc(size_t nmemb, size_t size) { return NULL; }
-
 void *realloc(void *ptr, size_t size) { return NULL; }
+#endif
 
 /*
  * qsort implementation below is modified from
@@ -1225,8 +1229,13 @@ int ckb_printf(const char *format, ...) {
 
 #else
 
+#ifdef CKB_PRINTF_DECLARATION_ONLY
+int printf(const char *format, ...);
+int ckb_printf(const char *format, ...);
+#else
 int printf(const char *format, ...) { return 0; }
 int ckb_printf(const char *format, ...) { return 0; }
+#endif /* CKB_PRINTF_DECLARATION_ONLY */
 
 #endif /* CKB_C_STDLIB_PRINTF */
 
