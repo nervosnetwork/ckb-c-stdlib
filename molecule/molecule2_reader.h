@@ -4,7 +4,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-#define CKB_C_STDLIB_PRINTF
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
