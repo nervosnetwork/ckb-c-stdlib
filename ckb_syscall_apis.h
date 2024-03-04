@@ -43,17 +43,28 @@ int ckb_dlopen2(const uint8_t* dep_cell_hash, uint8_t hash_type,
 void* ckb_dlsym(void* handle, const char* symbol);
 
 typedef struct spawn_args_t {
-  uint64_t memory_limit;
-  int8_t* exit_code;
-  uint8_t* content;
-  uint64_t* content_length;
+  size_t argc;
+  const char** argv;
+  /* Spawned VM process ID */
+  uint64_t* process_id;
+  /* A list of file descriptor, 0 indicates end of array */
+  const uint64_t* inherited_fds;
 } spawn_args_t;
-int ckb_spawn(size_t index, size_t source, size_t bounds, int argc,
-              const char* argv[], spawn_args_t* spgs);
-int ckb_spawn_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
-                   uint32_t length, int argc, const char* argv[],
-                   spawn_args_t* spgs);
-int ckb_get_memory_limit();
-int ckb_set_content(uint8_t* content, uint64_t* length);
+
+int ckb_spawn(size_t index, size_t source, size_t place, size_t bounds,
+              spawn_args_t* spawn_args);
+int ckb_wait(uint64_t pid, int8_t* exit_code);
+
+uint64_t ckb_process_id();
+
+int ckb_pipe(uint64_t fds[2]);
+
+int ckb_read(uint64_t fd, void* buffer, size_t* length);
+
+int ckb_write(uint64_t fd, const void* buffer, size_t* length);
+
+int ckb_inherited_file_descriptors(uint64_t* fd, size_t* length);
+
+int ckb_close(uint64_t fd);
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALL_APIS_H_ */
