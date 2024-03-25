@@ -373,7 +373,7 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         current_offset += load_size * sizeof(Elf64_Rela);
         for (size_t j = 0; j < load_size; j++) {
           Elf64_Rela *r = &relocations[j];
-          uint32_t t = (uint32_t) r->r_info;
+          uint32_t t = (uint32_t)r->r_info;
           if (t != R_RISCV_RELATIVE && t != R_RISCV_JUMP_SLOT) {
             /*
              * Only relative and jump slot relocations are supported now,
