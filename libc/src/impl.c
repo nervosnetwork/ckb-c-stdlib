@@ -25,6 +25,8 @@
  * for the creation.
  */
 
+#undef __OPTIMIZE_SIZE__
+
 void *memset(void *dest, int c, size_t n) {
   unsigned char *s = dest;
 #ifndef __OPTIMIZE_SIZE__
