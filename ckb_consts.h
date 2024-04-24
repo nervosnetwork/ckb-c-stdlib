@@ -19,11 +19,15 @@
 #define SYS_ckb_load_cell_data_as_code 2091
 #define SYS_ckb_load_cell_data 2092
 #define SYS_ckb_debug 2177
-#define SYS_ckb_spawn 2101
-#define SYS_ckb_get_memory_limit 2102
-#define SYS_ckb_set_content 2103
 #define SYS_ckb_load_block_extension 2104
-#define SYS_ckb_current_memory 2105
+#define SYS_ckb_spawn: u64 = 2601;
+#define SYS_ckb_wait: u64 = 2602;
+#define SYS_ckb_process_id: u64 = 2603;
+#define SYS_ckb_pipe: u64 = 2604;
+#define SYS_ckb_write: u64 = 2605;
+#define SYS_ckb_read: u64 = 2606;
+#define SYS_ckb_inherited_fd: u64 = 2607;
+#define SYS_ckb_close: u64 = 2608;
 
 #define CKB_SUCCESS 0
 #define CKB_INDEX_OUT_OF_BOUND 1
