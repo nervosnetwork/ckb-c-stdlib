@@ -377,33 +377,41 @@ int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
                  argv);
 }
 
-int ckb_spawn(size_t index, size_t source, size_t bounds, int argc,
-              const char* argv[], spawn_args_t* spgs) {
-  return syscall(SYS_ckb_spawn, index, source, bounds, argc, argv, spgs);
+int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset,
+                             size_t index, size_t source) {
+  return syscall(SYS_ckb_load_block_extension, addr, len, offset, index, source,
+                 0);
 }
 
-int ckb_spawn_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
-                   uint32_t length, int argc, const char* argv[],
-                   spawn_args_t* spgs) {
-  size_t index = SIZE_MAX;
-  int ret = ckb_look_for_dep_with_hash2(code_hash, hash_type, &index);
-  if (ret != CKB_SUCCESS) {
-    return ret;
-  }
-  size_t bounds = ((size_t)offset << 32) | length;
-  return ckb_spawn(index, CKB_SOURCE_CELL_DEP, bounds, argc, argv, spgs);
+int ckb_spawn(size_t index, size_t source, size_t place, size_t bounds,
+              spawn_args_t* spawn_args) {
+  return syscall(SYS_ckb_spawn, index, source, place, bounds, spawn_args, 0);
 }
 
-int ckb_get_memory_limit() {
-  return syscall(SYS_ckb_get_memory_limit, 0, 0, 0, 0, 0, 0);
+int ckb_wait(uint64_t pid, int8_t* exit_code) {
+  return syscall(SYS_ckb_wait, pid, exit_code, 0, 0, 0, 0);
 }
 
-int ckb_set_content(uint8_t* content, uint64_t* length) {
-  return syscall(SYS_ckb_set_content, content, length, 0, 0, 0, 0);
+uint64_t ckb_process_id() {
+  return syscall(SYS_ckb_process_id, 0, 0, 0, 0, 0, 0);
 }
 
-int ckb_current_memory() {
-  return syscall(SYS_ckb_current_memory, 0, 0, 0, 0, 0, 0);
+int ckb_pipe(uint64_t fds[2]) {
+  return syscall(SYS_ckb_pipe, fds, 0, 0, 0, 0, 0);
+}
+
+int ckb_read(uint64_t fd, void* buffer, size_t* length) {
+  volatile size_t l = *length;
+  int ret = syscall(SYS_ckb_read, fd, buffer, &l, 0, 0, 0);
+  *length = l;
+  return ret;
+}
+
+int ckb_write(uint64_t fd, const void* buffer, size_t* length) {
+  volatile size_t l = *length;
+  int ret = syscall(SYS_ckb_write, fd, buffer, &l, 0, 0, 0);
+  *length = l;
+  return ret;
 }
 
 int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset,
@@ -411,6 +419,15 @@ int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset,
   return syscall(SYS_ckb_load_block_extension, addr, len, offset, index, source,
                  0);
 }
+
+int ckb_inherited_file_descriptors(uint64_t* fd, size_t* length) {
+  volatile size_t l = *length;
+  int ret = syscall(SYS_ckb_inherited_fd, fd, &l, 0, 0, 0, 0);
+  *length = l;
+  return ret;
+}
+
+int ckb_close(uint64_t fd) { return syscall(SYS_ckb_close, fd, 0, 0, 0, 0, 0); }
 
 #endif /* CKB_STDLIB_NO_SYSCALL_IMPL */
 
