@@ -377,12 +377,6 @@ int ckb_exec_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
                  argv);
 }
 
-int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset,
-                             size_t index, size_t source) {
-  return syscall(SYS_ckb_load_block_extension, addr, len, offset, index, source,
-                 0);
-}
-
 int ckb_spawn(size_t index, size_t source, size_t place, size_t bounds,
               spawn_args_t* spawn_args) {
   return syscall(SYS_ckb_spawn, index, source, place, bounds, spawn_args, 0);
