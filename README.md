@@ -1,7 +1,5 @@
 # ckb-c-stdlib
 
-[![Build Status](https://travis-ci.com/nervosnetwork/ckb-c-stdlib.svg?branch=master)](https://travis-ci.com/nervosnetwork/ckb-c-stdlib)
-
 In the development of CKB scripts, we discovered many use-cases and patterns that could be really useful in writing CKB scripts. This repo serves as a commonplace for all those useful scripts. This could include but aren't limit to:
 
 * CKB's data structure definitions

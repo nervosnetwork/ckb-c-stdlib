@@ -26,7 +26,7 @@
 #define SYS_ckb_pipe 2604
 #define SYS_ckb_write 2605
 #define SYS_ckb_read 2606
-#define SYS_ckb_inherited_fd 607
+#define SYS_ckb_inherited_fd 2607
 #define SYS_ckb_close 2608
 
 #define CKB_SUCCESS 0
