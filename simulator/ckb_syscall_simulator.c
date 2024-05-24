@@ -1,7 +1,7 @@
 
 // make assert working under release
 #undef NDEBUG
-//#define CKB_SIMULATOR_VERBOSE
+// #define CKB_SIMULATOR_VERBOSE
 
 #include "ckb_syscall_simulator.h"
 

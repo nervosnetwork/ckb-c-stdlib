@@ -8,6 +8,7 @@ EXTRA := -I . -I libc -I molecule -Wno-unused-function
 
 # nervos/ckb-riscv-gnu-toolchain:jammy-20230214
 BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d175f4a766b4b17a44bd9bbeca8e24ab2427ba615738016dc49e194046e6b28b
+CLANG_FORMAT_DOCKER := xujiandong/ckb-riscv-llvm-toolchain@sha256:6409ab0d3e335c74088b54f4f73252f4b3367ae364d5c7ca7acee82135f5af4d
 
 
 default: fmt
@@ -20,9 +21,12 @@ all: tests/ci
 tests/ci: tests/ci.c
 	$(CC) $(CFLAGS) $(EXTRA) $(LDFLAGS) -o $@ $<
 
+ALL_C_SOURCE := $(wildcard *.h */*.h *.c */*.c libc/*.h libc/src/*.c)
+
 fmt:
-	clang-format -i -style=Google $(wildcard *.h */*.h *.c */*.c libc/*.h libc/src/*.c)
-	git diff --exit-code
+	docker run -u $(shell id -u):$(shell id -g) --rm -v `pwd`:/code ${CLANG_FORMAT_DOCKER} bash -c "cd code && clang-format -i -style='{BasedOnStyle: google, SortIncludes: false}' $(ALL_C_SOURCE)"
+	git diff --exit-code $(ALL_C_SOURCE)
+
 
 $(LIB): impl.o
 	$(AR) rcs $@ $^
