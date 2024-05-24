@@ -4,7 +4,7 @@ LIB := libdummylibc.a
 CFLAGS := -Wall -Werror -Wextra -Wno-unused-parameter -Wno-dangling-pointer -Wno-nonnull -Wno-nonnull-compare -fno-builtin-printf -fno-builtin-memcmp -O3 -g -fdata-sections -ffunction-sections
 
 LDFLAGS := -nostdlib -nostartfiles -Wl,-static -Wl,--gc-sections
-EXTRA := -I . -I libc -I molecule -Wno-unused-function
+EXTRA := -I . -I libc -I molecule -Wno-unused-function -Wno-array-bounds -Wno-stringop-overflow
 
 # nervos/ckb-riscv-gnu-toolchain:jammy-20230214
 BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d175f4a766b4b17a44bd9bbeca8e24ab2427ba615738016dc49e194046e6b28b
