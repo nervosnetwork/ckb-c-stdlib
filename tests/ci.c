@@ -26,6 +26,4 @@
 #include "molecule2_reader.h"
 #include "molecule_builder.h"
 
-int main(int argc, const char* argv[]) {
-    return 0;
-}
+int main(int argc, const char* argv[]) { return 0; }

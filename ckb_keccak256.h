@@ -280,8 +280,8 @@ static void sha3_process_block(uint64_t hash[25], const uint64_t *block) {
   sha3_permutation(hash);
 }
 
-//#define SHA3_FINALIZED 0x80000000
-//#define SHA3_FINALIZED 0x8000
+// #define SHA3_FINALIZED 0x80000000
+// #define SHA3_FINALIZED 0x8000
 
 /**
  * Calculate message hash.

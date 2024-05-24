@@ -251,6 +251,18 @@ mol_fixvec_slice_raw_bytes(const mol_seg_t *input) {
   return seg;
 }
 
+// Check if a segment(`part`) is contained by `total`
+MOLECULE_API_DECORATOR bool mol_contained_by(const mol_seg_t *part,
+                                             const mol_seg_t *total) {
+  if (part->ptr < total->ptr) {
+    return MOL_ERR_OFFSET;
+  }
+  if ((part->ptr + part->size) > (total->ptr + total->size)) {
+    return MOL_ERR_OFFSET;
+  }
+  return MOL_OK;
+}
+
 /*
  * Undef macros which are internal use only.
  */

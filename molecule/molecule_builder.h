@@ -81,9 +81,6 @@ MOLECULE_API_DECORATOR void mol_builder_initialize_fixed_size(
     builder->data_cap = 0;
   } else {
     builder->data_ptr = (uint8_t *)malloc(fixed_size);
-    if (builder->data_ptr == NULL) {
-      return;
-    }
     memset(builder->data_ptr, 0x00, fixed_size);
     builder->data_used = fixed_size;
     builder->data_cap = fixed_size;
@@ -97,9 +94,6 @@ MOLECULE_API_DECORATOR void mol_union_builder_initialize(
     mol_builder_t *builder, mol_num_t data_capacity, mol_num_t item_id,
     const uint8_t *default_ptr, mol_num_t default_len) {
   builder->data_ptr = (uint8_t *)malloc(data_capacity);
-  if (builder->data_ptr == NULL) {
-    return;
-  }
   builder->data_cap = data_capacity;
   mol_pack_number(builder->data_ptr, &item_id);
   builder->data_used = MOL_NUM_T_SIZE + default_len;
@@ -117,15 +111,9 @@ MOLECULE_API_DECORATOR void mol_builder_initialize_with_capacity(
     mol_builder_t *builder, mol_num_t data_capacity,
     mol_num_t number_capacity) {
   builder->data_ptr = (uint8_t *)malloc(data_capacity);
-  if (builder->data_ptr == NULL) {
-    return;
-  }
   builder->data_used = 0;
   builder->data_cap = data_capacity;
   builder->number_ptr = (mol_num_t *)malloc(number_capacity);
-  if (builder->number_ptr == NULL) {
-    return;
-  }
   builder->number_used = 0;
   builder->number_cap = number_capacity;
 }
@@ -303,10 +291,6 @@ mol_fixvec_builder_finalize(mol_builder_t builder) {
   res.errno = MOL_OK;
   res.seg.size = MOL_NUM_T_SIZE + builder.data_used;
   res.seg.ptr = (uint8_t *)malloc(res.seg.size);
-  if (res.seg.ptr == NULL) {
-    res.errno = MOL_ERR;
-    return res;
-  }
   mol_pack_number(res.seg.ptr, &builder.number_ptr[0]);
   if (builder.data_used > 0) {
     memcpy((res.seg.ptr + MOL_NUM_T_SIZE), builder.data_ptr, builder.data_used);
@@ -321,10 +305,6 @@ mol_dynvec_builder_finalize(mol_builder_t builder) {
   res.errno = MOL_OK;
   res.seg.size = MOL_NUM_T_SIZE + builder.number_used + builder.data_used;
   res.seg.ptr = (uint8_t *)malloc(res.seg.size);
-  if (res.seg.ptr == NULL) {
-    res.errno = MOL_ERR;
-    return res;
-  }
   mol_pack_number(res.seg.ptr, &res.seg.size);
   mol_num_t number_count = builder.number_used / MOL_NUM_T_SIZE;
   mol_num_t header_size = MOL_NUM_T_SIZE + builder.number_used;
