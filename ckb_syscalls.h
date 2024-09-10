@@ -428,7 +428,7 @@ int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset,
 
 int ckb_inherited_fds(uint64_t* fds, size_t* length) {
   volatile size_t l = *length;
-  int ret = syscall(SYS_ckb_inherited_fds, fd, &l, 0, 0, 0, 0);
+  int ret = syscall(SYS_ckb_inherited_fds, fds, &l, 0, 0, 0, 0);
   *length = l;
   return ret;
 }
