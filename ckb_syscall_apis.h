@@ -53,6 +53,10 @@ typedef struct spawn_args_t {
 
 int ckb_spawn(size_t index, size_t source, size_t place, size_t bounds,
               spawn_args_t* spawn_args);
+
+int ckb_spawn_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
+                   uint32_t length, spawn_args_t* spawn_args);
+
 int ckb_wait(uint64_t pid, int8_t* exit_code);
 
 uint64_t ckb_process_id();
@@ -63,8 +67,11 @@ int ckb_read(uint64_t fd, void* buffer, size_t* length);
 
 int ckb_write(uint64_t fd, const void* buffer, size_t* length);
 
-int ckb_inherited_file_descriptors(uint64_t* fd, size_t* length);
+int ckb_inherited_fds(uint64_t* fds, size_t* length);
 
 int ckb_close(uint64_t fd);
+
+int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset,
+                             size_t index, size_t source);
 
 #endif /* CKB_C_STDLIB_CKB_SYSCALL_APIS_H_ */
