@@ -382,6 +382,18 @@ int ckb_spawn(size_t index, size_t source, size_t place, size_t bounds,
   return syscall(SYS_ckb_spawn, index, source, place, bounds, spawn_args, 0);
 }
 
+int ckb_spawn_cell(const uint8_t* code_hash, uint8_t hash_type, uint32_t offset,
+                   uint32_t length, spawn_args_t* spawn_args) {
+  size_t index = SIZE_MAX;
+  int ret = ckb_look_for_dep_with_hash2(code_hash, hash_type, &index);
+  if (ret != CKB_SUCCESS) {
+    return ret;
+  }
+  size_t bounds = ((size_t)offset << 32) | length;
+  return syscall(SYS_ckb_spawn, index, CKB_SOURCE_CELL_DEP, 0, bounds,
+                 spawn_args, 0);
+}
+
 int ckb_wait(uint64_t pid, int8_t* exit_code) {
   return syscall(SYS_ckb_wait, pid, exit_code, 0, 0, 0, 0);
 }
@@ -414,9 +426,9 @@ int ckb_load_block_extension(void* addr, uint64_t* len, size_t offset,
                  0);
 }
 
-int ckb_inherited_file_descriptors(uint64_t* fd, size_t* length) {
+int ckb_inherited_fds(uint64_t* fds, size_t* length) {
   volatile size_t l = *length;
-  int ret = syscall(SYS_ckb_inherited_fd, fd, &l, 0, 0, 0, 0);
+  int ret = syscall(SYS_ckb_inherited_fds, fds, &l, 0, 0, 0, 0);
   *length = l;
   return ret;
 }
