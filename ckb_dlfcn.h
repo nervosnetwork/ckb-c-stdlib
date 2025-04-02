@@ -13,8 +13,8 @@ int ckb_dlopen(const uint8_t *dep_cell_data_hash, uint8_t *aligned_addr,
 
 int _ckb_load_cell_code(void *addr, size_t memory_size, size_t content_offset,
                         size_t content_size, size_t index, size_t source) {
-  return syscall(SYS_ckb_load_cell_data_as_code, addr, memory_size,
-                 content_offset, content_size, index, source);
+  return ckb_load_cell_data_as_code(addr, memory_size, content_offset,
+                                    content_size, index, source);
 }
 
 /*
@@ -259,9 +259,9 @@ int ckb_dlopen2(const uint8_t *dep_cell_hash, uint8_t hash_type,
         if (ph->p_offset < prepad) {
           return ERROR_ELF_NOT_ALIGNED;
         }
-        ret = _ckb_load_cell_code(addr2, memsz, ph->p_offset - prepad,
-                                  ph->p_filesz + prepad, index,
-                                  CKB_SOURCE_CELL_DEP);
+        ret = ckb_load_cell_data_as_code(addr2, memsz, ph->p_offset - prepad,
+                                         ph->p_filesz + prepad, index,
+                                         CKB_SOURCE_CELL_DEP);
         if (ret != CKB_SUCCESS) {
           return ret;
         }
