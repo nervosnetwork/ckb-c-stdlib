@@ -20,6 +20,15 @@
 #include <stdint.h>
 
 /*
+ * From
+ * https://git.musl-libc.org/cgit/musl/tree/src/include/features.h?id=86373b4999bfd9a9379bc4a3ca877b1c80a2a340#n8
+ */
+#ifndef weak_alias
+#define weak_alias(old, new) \
+  extern __typeof(old) new __attribute__((__weak__, __alias__(#old)))
+#endif
+
+/*
  * The implementation here is based on musl-libc with modifications for our
  * use case. The original musl-libc follows MIT license, thanks to the authors
  * for the creation.
@@ -329,10 +338,14 @@ void free(void *ptr);
 void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
 #else
-void *malloc(size_t size) { return NULL; }
-void free(void *ptr) {}
-void *calloc(size_t nmemb, size_t size) { return NULL; }
-void *realloc(void *ptr, size_t size) { return NULL; }
+void *failure_malloc(size_t size) { return NULL; }
+weak_alias(failure_malloc, malloc);
+void failure_free(void *ptr) {}
+weak_alias(failure_free, free);
+void *failure_calloc(size_t nmemb, size_t size) { return NULL; }
+weak_alias(failure_calloc, calloc);
+void *failure_realloc(void *ptr, size_t size) { return NULL; }
+weak_alias(failure_realloc, realloc);
 #endif
 
 /*

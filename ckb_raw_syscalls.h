@@ -10,8 +10,10 @@
  * From
  * https://git.musl-libc.org/cgit/musl/tree/src/include/features.h?id=86373b4999bfd9a9379bc4a3ca877b1c80a2a340#n8
  */
+#ifndef weak_alias
 #define weak_alias(old, new) \
   extern __typeof(old) new __attribute__((__weak__, __alias__(#old)))
+#endif
 
 #define memory_barrier() asm volatile("fence" ::: "memory")
 
