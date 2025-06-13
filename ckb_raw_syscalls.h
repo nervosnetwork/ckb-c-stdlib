@@ -19,6 +19,7 @@
 
 long default_internal_syscall(long n, long _a0, long _a1, long _a2, long _a3,
                               long _a4, long _a5) {
+#ifdef __riscv
   register long a0 asm("a0") = _a0;
   register long a1 asm("a1") = _a1;
   register long a2 asm("a2") = _a2;
@@ -42,6 +43,16 @@ long default_internal_syscall(long n, long _a0, long _a1, long _a2, long _a3,
   memory_barrier();
 
   return a0;
+#else
+  (void)n;
+  (void)_a0;
+  (void)_a1;
+  (void)_a2;
+  (void)_a3;
+  (void)_a4;
+  (void)_a5;
+  return -1;
+#endif
 }
 weak_alias(default_internal_syscall, __internal_syscall);
 
