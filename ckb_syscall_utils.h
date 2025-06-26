@@ -147,6 +147,7 @@ int ckb_calculate_inputs_len() {
   int ret;
   /* try to load input until failing to increase lo and hi */
   while (1) {
+    len = 0;
     ret = ckb_load_input_by_field(NULL, &len, 0, hi, CKB_SOURCE_INPUT,
                                   CKB_INPUT_FIELD_SINCE);
     if (ret == CKB_SUCCESS) {
@@ -162,6 +163,7 @@ int ckb_calculate_inputs_len() {
   int i;
   while (lo + 1 != hi) {
     i = (lo + hi) / 2;
+    len = 0;
     ret = ckb_load_input_by_field(NULL, &len, 0, i, CKB_SOURCE_INPUT,
                                   CKB_INPUT_FIELD_SINCE);
     if (ret == CKB_SUCCESS) {
