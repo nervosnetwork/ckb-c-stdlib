@@ -579,17 +579,20 @@ mol2_cursor_t mol2_make_cursor_from_memory(const void *memory, uint32_t size) {
   cur.offset = 0;
   cur.size = size;
   // init data source
-  static mol2_data_source_t s_data_source = {0};
+  static union {
+    mol2_data_source_t data_source;
+    uint8_t bytes[MOL2_DATA_SOURCE_LEN(MAX_CACHE_SIZE)];
+  } s_data_source = {0};
 
-  s_data_source.read = mol2_source_memory;
-  s_data_source.total_size = size;
-  s_data_source.args[0] = (uintptr_t)memory;
-  s_data_source.args[1] = (uintptr_t)size;
+  s_data_source.data_source.read = mol2_source_memory;
+  s_data_source.data_source.total_size = size;
+  s_data_source.data_source.args[0] = (uintptr_t)memory;
+  s_data_source.data_source.args[1] = (uintptr_t)size;
 
-  s_data_source.cache_size = 0;
-  s_data_source.start_point = 0;
-  s_data_source.max_cache_size = MAX_CACHE_SIZE;
-  cur.data_source = &s_data_source;
+  s_data_source.data_source.cache_size = 0;
+  s_data_source.data_source.start_point = 0;
+  s_data_source.data_source.max_cache_size = MAX_CACHE_SIZE;
+  cur.data_source = &s_data_source.data_source;
   return cur;
 }
 
