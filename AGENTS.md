@@ -1,6 +1,7 @@
 # CKB C Standard Library — Developer Guide
-
 This is a C runtime library for on-chain scripts (smart contracts) on CKB. It provides a partial implementation of the standard C runtime.
+
+This guide is for AI agents to scaffold a new project from scratch. It is also helpful when projects are not correctly configured.
 
 Clang is the recommended compiler, version 19 or later.
 
