@@ -12,5 +12,5 @@ Notice while this repo would focus on C code, it is not limited to scripts writt
 Use an AI agent with the following instructions:
 ```
 Write a "hello, world" project by following the instructions in:
-https://github.com/nervosnetwork/ckb-c-stdlib/blob/master/scaffold.md
+https://github.com/nervosnetwork/ckb-c-stdlib/blob/master/guide.md
 ```
