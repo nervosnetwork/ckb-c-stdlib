@@ -7,3 +7,10 @@ In the development of CKB scripts, we discovered many use-cases and patterns tha
 * A shimmed libc, notice the libc here is tailored for CKB's special needs, implementing everything in POSIX's standard is never a goal. If you do have special requirements, using a more complete libc is always a better choice
 
 Notice while this repo would focus on C code, it is not limited to scripts written in C. A Rust script might use FFI to leverage the C code here, a higher level language can also use certain glues to use the code here.
+
+## Build with this library
+Use an AI agent with the following instructions:
+```
+Write a "hello, world" project by following the instructions in:
+https://github.com/nervosnetwork/ckb-c-stdlib/blob/master/guide.md
+```
