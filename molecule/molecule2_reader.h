@@ -349,6 +349,9 @@ bool mol2_table_has_extra_fields(const mol2_cursor_t *input,
 
 mol2_cursor_t mol2_slice_by_offset(const mol2_cursor_t *input,
                                    mol2_num_t offset, mol2_num_t size) {
+  if (offset > input->size || size > input->size - offset) {
+    MOL2_PANIC(MOL2_ERR_INDEX_OUT_OF_BOUNDS);
+  }
   mol2_cursor_t cur = *input;
 
   //  cur.offset = input->offset + offset;
@@ -360,6 +363,12 @@ mol2_cursor_t mol2_slice_by_offset(const mol2_cursor_t *input,
 
 mol2_cursor_res_t mol2_slice_by_offset2(const mol2_cursor_t *input,
                                         mol2_num_t offset, mol2_num_t size) {
+  mol2_cursor_res_t res;
+  res.cur = *input;
+  if (offset > input->size || size > input->size - offset) {
+    res.errno = MOL2_ERR_INDEX_OUT_OF_BOUNDS;
+    return res;
+  }
   mol2_cursor_t cur = *input;
 
   //  cur.offset = input->offset + offset;
@@ -367,7 +376,6 @@ mol2_cursor_res_t mol2_slice_by_offset2(const mol2_cursor_t *input,
   cur.size = size;
   mol2_validate(&cur);
 
-  mol2_cursor_res_t res;
   res.errno = MOL2_OK;
   res.cur = cur;
   return res;
