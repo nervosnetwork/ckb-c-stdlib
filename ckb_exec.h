@@ -118,13 +118,14 @@ int ckb_exec_append(CkbBinaryArgsType* args, uint8_t* data, uint32_t len) {
   if (args->count >= CKB_EXEC_MAX_ARGS_COUNT) {
     return ERROR_EXEC_INVALID_HEX;
   }
-  uint8_t* p = args->buff + args->used_buff;
-  args->used_buff += len;
-  if (args->used_buff > CKB_EXEC_MAX_BUFF_LEN) {
+  if (args->used_buff > CKB_EXEC_MAX_BUFF_LEN ||
+      len > CKB_EXEC_MAX_BUFF_LEN - args->used_buff) {
     return ERROR_EXEC_OUT_OF_BOUNDS;
   }
 
+  uint8_t* p = args->buff + args->used_buff;
   memcpy(p, data, len);
+  args->used_buff += len;
   args->params[args->count] = p;
   args->len[args->count] = len;
 
